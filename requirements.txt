@@ -1,0 +1,9 @@
+click>=8.0.0
+colorama>=0.4.6
+pathspec>=0.11.0
+PyInstaller>=5.13.0
+pyyaml>=6.0
+baml-py>=0.202.1
+typing_extensions>=4.8.0
+pydantic>=2.6.0
+python-dotenv>=1.0.0
