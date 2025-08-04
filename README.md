@@ -23,9 +23,9 @@ git clone https://github.com/your-org/rules-engine.git
 cd rules-engine
 ```
 
-2. Install build dependencies:
+2. Install all dependencies:
 ```bash
-python -m pip install pyinstaller
+pip install -r requirements.txt
 ```
 
 3. Build the executable:
@@ -60,6 +60,7 @@ pip install -r requirements.txt
 
 4. Run the CLI:
 ```bash
+python -m rules_engine.cli start
 ```
 
 5. When you're done, deactivate the virtual environment:
@@ -91,9 +92,11 @@ rules-engine start --verbose ~/path/to/repository
 
 The tool will:
 1. Check if the specified directory is a Git repository
-2. Initialize BAML if needed (skipped during builds)
+2. Initialize BAML client code generation
 3. Create an empty rules file if none exists
 4. Analyze the repository against the rules
+
+Note: The build process automatically runs BAML generation, so built executables don't need this step.
 
 The rules and analysis files will be created in the target repository under:
 - `.cursor/rules.mdc` - The rules file
