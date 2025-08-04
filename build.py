@@ -9,6 +9,11 @@ import platform
 import PyInstaller.__main__
 import shutil
 from pathlib import Path
+try:
+    from baml_init import generate_baml
+except ImportError:
+    print("Warning: Could not import baml_init module")
+    generate_baml = None
 
 def clean_build_dirs():
     """Clean up build directories before building."""
@@ -110,6 +115,20 @@ def fix_dependencies():
         print("Continuing build anyway...")
         return True
 
+def run_baml_generation():
+    """Run BAML generation before building."""
+    if generate_baml is None:
+        print("⚠️  BAML generation not available. Please ensure baml-init.py is present.")
+        return True  # Continue with build anyway
+    
+    print("🔧 Running BAML generation...")
+    success = generate_baml(verbose=True)
+    if success:
+        print("✅ BAML generation completed")
+    else:
+        print("❌ BAML generation failed")
+    return success
+
 def main():
     """Main build function."""
     print("🚀 Starting build process...")
@@ -117,6 +136,11 @@ def main():
     # Fix dependencies first
     if not fix_dependencies():
         print("💥 Dependency issues detected. Please run 'python fix_dependencies.py' first.")
+        exit(1)
+    
+    # Run BAML generation
+    if not run_baml_generation():
+        print("💥 BAML generation failed. Please run 'python baml-init.py' manually.")
         exit(1)
     
     # Clean up previous builds

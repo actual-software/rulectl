@@ -37,22 +37,44 @@ def find_baml_cli():
         print(f"Error finding baml-cli: {e}")
         sys.exit(1)
 
-def main():
-    """Main function to run baml-cli generate."""
-    # Find the baml-cli executable
-    baml_cli_path = find_baml_cli()
-    print(f"Found baml-cli at: {baml_cli_path}")
+def generate_baml(verbose=True):
+    """Generate BAML client code. Can be imported and used by other scripts.
     
-    # Run baml-cli generate
+    Args:
+        verbose (bool): Whether to print status messages
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
     try:
-        print("Running baml-cli generate...")
+        # Find the baml-cli executable
+        baml_cli_path = find_baml_cli()
+        if verbose:
+            print(f"Found baml-cli at: {baml_cli_path}")
+        
+        # Run baml-cli generate
+        if verbose:
+            print("Running baml-cli generate...")
         result = subprocess.run(
             [baml_cli_path, "generate"],
             check=True
         )
-        print("BAML initialization completed successfully!")
+        if verbose:
+            print("BAML initialization completed successfully!")
+        return True
     except subprocess.CalledProcessError as e:
-        print(f"Error running baml-cli generate: {e}")
+        if verbose:
+            print(f"Error running baml-cli generate: {e}")
+        return False
+    except Exception as e:
+        if verbose:
+            print(f"Error during BAML generation: {e}")
+        return False
+
+def main():
+    """Main function to run baml-cli generate."""
+    success = generate_baml(verbose=True)
+    if not success:
         sys.exit(1)
 
 if __name__ == "__main__":
