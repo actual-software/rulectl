@@ -15,9 +15,18 @@ def find_baml_cli():
         # Get the virtual environment base directory
         venv_base = sys.prefix
         
-        # Check if we're in a virtual environment
-        if not hasattr(sys, 'real_prefix') and not sys.base_prefix != sys.prefix:
-            print("Error: This script must be run within a virtual environment")
+        # Check if we're in a virtual environment, Docker container, or CI environment
+        is_venv = hasattr(sys, 'real_prefix') or sys.base_prefix != sys.prefix
+        is_docker = (os.path.exists('/.dockerenv') or 
+                     os.environ.get('container') == 'docker' or
+                     os.path.exists('/proc/1/cgroup'))  # Alternative Docker detection
+        is_ci = any(key in os.environ for key in ['CI', 'GITHUB_ACTIONS', 'GITLAB_CI', 'JENKINS_URL'])
+        is_build = os.environ.get('RULES_ENGINE_BUILD') == '1'
+        
+        # Allow if any isolation method is detected
+        if not (is_venv or is_docker or is_ci or is_build):
+            print("Error: This script should be run in an isolated environment (virtual environment, Docker, CI, or build mode)")
+            print("To bypass this check, set RULES_ENGINE_BUILD=1")
             sys.exit(1)
         
         # Determine the bin directory name based on platform

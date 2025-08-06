@@ -285,21 +285,21 @@ async def async_start(verbose: bool, force: bool, directory: str):
         else:
             click.echo("\n🔄 BAML client not found. Initializing...")
             try:
-                # Get the path to baml-init.py - handle both development and bundled scenarios
+                # Get the path to baml_init.py - handle both development and bundled scenarios
                 if getattr(sys, 'frozen', False):  # PyInstaller bundle
                     # In a PyInstaller bundle, use sys._MEIPASS
                     bundle_dir = Path(sys._MEIPASS)
-                    init_script = bundle_dir / "baml-init.py"
+                    init_script = bundle_dir / "baml_init.py"
                 else:
                     # Development mode
-                    init_script = Path(__file__).parent.parent / "baml-init.py"
+                    init_script = Path(__file__).parent.parent / "baml_init.py"
                 
                 if not init_script.exists():
-                    click.echo("❌ Could not find baml-init.py")
+                    click.echo("❌ Could not find baml_init.py")
                     click.echo(f"Looked for: {init_script}")
                     raise click.Abort()
                 
-                # Run baml-init.py
+                # Run baml_init.py
                 result = subprocess.run(
                     [sys.executable, str(init_script)],
                     check=True,

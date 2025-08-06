@@ -118,7 +118,7 @@ def fix_dependencies():
 def run_baml_generation():
     """Run BAML generation before building."""
     if generate_baml is None:
-        print("⚠️  BAML generation not available. Please ensure baml-init.py is present.")
+        print("⚠️  BAML generation not available. Please ensure baml_init.py is present.")
         return True  # Continue with build anyway
     
     print("🔧 Running BAML generation...")
@@ -140,7 +140,7 @@ def main():
     
     # Run BAML generation
     if not run_baml_generation():
-        print("💥 BAML generation failed. Please run 'python baml-init.py' manually.")
+        print("💥 BAML generation failed. Please run 'python baml_init.py' manually.")
         exit(1)
     
     # Clean up previous builds
