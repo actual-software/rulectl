@@ -1,0 +1,102 @@
+# =============================================================================
+# MODEL PRICING CONFIGURATION for Rules Engine Token Tracking
+# =============================================================================
+#
+# This file configures cost estimation for AI model usage in the Rules Engine.
+# The TokenTracker class automatically loads this configuration to calculate
+# real-time token costs during code analysis operations.
+#
+# MAINTENANCE:
+#   - Last updated: 2025-01-07
+#   - Update frequency: Check quarterly or when new models are released
+#   - Always verify prices against official provider documentation
+#   - Test changes with build process: python build.py (includes in binary)
+#
+# USAGE:
+#   - Loaded automatically by TokenTracker class
+#   - Prices are per 1 million tokens (standard industry unit)
+#   - Falls back to hardcoded pricing if this file is unavailable
+#   - Used for both real-time progress display and final cost reporting
+#
+# PRICING SOURCES:
+#   - Anthropic: https://www.anthropic.com/pricing#api
+#   - OpenAI: https://platform.openai.com/docs/pricing
+#   - Always use official pricing pages, not third-party summaries
+#
+# =============================================================================
+
+models:
+  # Anthropic Claude models - High capability, used as default
+  claude-sonnet-4-20250514:
+    name: "Claude 4 Sonnet"
+    provider: "Anthropic"
+    input_cost_per_1m: 3.0   # USD per 1M input tokens
+    output_cost_per_1m: 15.0  # USD per 1M output tokens
+    notes: "Most capable Claude 4 model - primary choice for complex analysis"
+    release_date: "2025-05-14"
+    context_window: 200000    # tokens
+    
+  claude-3-haiku-20240307:
+    name: "Claude 3 Haiku"
+    provider: "Anthropic"
+    input_cost_per_1m: 0.25   # USD per 1M input tokens
+    output_cost_per_1m: 1.25  # USD per 1M output tokens
+    notes: "Fast and affordable Claude model - good for batch processing"
+    release_date: "2024-03-07"
+    context_window: 200000    # tokens
+    
+  # OpenAI GPT models - Alternative option with competitive pricing  
+  gpt-4o:
+    name: "GPT-4o"
+    provider: "OpenAI"
+    input_cost_per_1m: 2.5    # USD per 1M input tokens
+    output_cost_per_1m: 10.0  # USD per 1M output tokens
+    notes: "OpenAI's flagship multimodal model - excellent for code analysis"
+    release_date: "2024-05-13"
+    context_window: 128000    # tokens
+    
+  gpt-4o-mini:
+    name: "GPT-4o Mini"
+    provider: "OpenAI"
+    input_cost_per_1m: 0.15   # USD per 1M input tokens
+    output_cost_per_1m: 0.6   # USD per 1M output tokens
+    notes: "Most affordable option - suitable for large-scale analysis"
+    release_date: "2024-07-18"
+    context_window: 128000    # tokens
+
+# =============================================================================
+# CONFIGURATION SETTINGS
+# =============================================================================
+
+# Default model for cost estimation when model ID is not recognized
+# Should always be set to a reliable, well-supported model
+default_model: "claude-sonnet-4-20250514"
+
+# Cost estimation behavior
+estimation_settings:
+  # Whether to round costs up to nearest cent for conservative estimates
+  round_up_costs: false
+  # Minimum cost to display (costs below this show as $0.00)
+  minimum_display_cost: 0.01
+  # Whether to show warnings for high token usage
+  warn_high_usage: true
+  # Token threshold for high usage warnings (per analysis run)
+  high_usage_threshold: 100000
+
+# =============================================================================
+# PRICING DATA SOURCES - FOR VERIFICATION AND UPDATES
+# =============================================================================
+
+pricing_sources:
+  anthropic: "https://www.anthropic.com/pricing#api"
+  openai: "https://platform.openai.com/docs/pricing"
+  
+# Update verification checklist:
+# 1. Check official pricing pages listed above
+# 2. Verify input/output token prices separately
+# 3. Confirm model names and release dates
+# 4. Test with small analysis run after changes
+# 5. Update 'last_updated' date in header comments
+# 6. Rebuild binary with: python build.py
+
+# =============================================================================

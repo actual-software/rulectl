@@ -3,6 +3,7 @@ Utility functions for the Rules Engine.
 """
 
 from pathlib import Path
+import yaml
 
 
 def validate_repository(path: str) -> bool:
@@ -232,4 +233,4 @@ def format_file_size(size_bytes: int) -> str:
         size_bytes /= 1024.0
         i += 1
     
-    return f"{size_bytes:.1f} {size_names[i]}" 
+    return f"{size_bytes:.1f} {size_names[i]}"
