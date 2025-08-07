@@ -71,3 +71,6 @@ build/
 dist/ 
 
 baml_client
+
+# AI tools
+.serena

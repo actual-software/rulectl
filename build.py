@@ -63,6 +63,7 @@ def build_executable():
         '--collect-submodules=rules_engine',  # Include all submodules
         '--runtime-hook=suppress_warnings.py',  # Add warning suppression
         '--add-data=baml_client:baml_client',  # Include pre-generated BAML client
+        '--add-data=config:config',  # Include configuration files (model pricing, etc.)
     ]
 
     # Add platform-specific options
