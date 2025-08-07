@@ -7,7 +7,7 @@ import click
 import sys
 import asyncio
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict
 from dotenv import load_dotenv
 import json
 import os
@@ -232,20 +232,109 @@ def clear_key(provider: str, force: bool):
 @cli.command()
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--force", "-f", is_flag=True, help="Skip confirmation prompts")
+@click.option("--output-format", "-o", default='cursor', 
+              help="Output format: cursor (.mdc files), claude (CLAUDE.md), all, or comma-separated list")
 @click.argument("directory", type=click.Path(exists=True, file_okay=False, dir_okay=True), default=".")
-def start(verbose: bool, force: bool, directory: str):
+def start(verbose: bool, force: bool, output_format: str, directory: str):
     """Start the Rules Engine service.
+    
+    Analyzes your repository and generates coding rules in the specified format.
+    
+    Output Formats:
+    - cursor: Traditional .mdc files in .cursor/rules/ (default)
+    - claude: Single CLAUDE.md file for Claude Code IDE
+    - all: Generate all available formats simultaneously
     
     DIRECTORY: Path to the repository to analyze (default: current directory)
     """
     try:
         # Run the async main function
-        asyncio.run(async_start(verbose, force, directory))
+        asyncio.run(async_start(verbose, force, output_format, directory))
     except Exception as e:
         click.echo(f"\n❌ Error: {str(e)}")
         sys.exit(1)
 
-async def async_start(verbose: bool, force: bool, directory: str):
+def _get_format_description(output_format: str) -> str:
+    """Get human-readable description for output format.
+    
+    Args:
+        output_format: Format specification
+        
+    Returns:
+        Human-readable description
+    """
+    from .formatters.manager import format_manager
+    
+    if output_format == 'all':
+        return "all available formats"
+    elif ',' in output_format:
+        formats = [f.strip() for f in output_format.split(',')]
+        if len(formats) > 2:
+            return f"{', '.join(formats[:-1])}, and {formats[-1]} formats"
+        else:
+            return f"{' and '.join(formats)} formats"
+    else:
+        # Single format
+        try:
+            formatter = format_manager.get_formatter(output_format)
+            return formatter.description
+        except:
+            return f"{output_format} format"
+
+def _get_format_action_text(output_format: str) -> str:
+    """Get format-specific action text for user prompts.
+    
+    Args:
+        output_format: Format specification
+        
+    Returns:
+        Format-appropriate action description
+    """
+    if output_format == 'claude':
+        return "add the rule to CLAUDE.md"
+    elif output_format == 'cursor':
+        return "add the rule to your .cursor/rules directory"
+    elif output_format == 'all':
+        return "add the rule to all output formats"
+    elif ',' in output_format:
+        formats = [f.strip() for f in output_format.split(',')]
+        if 'claude' in formats and 'cursor' in formats:
+            return "add the rule to .cursor/rules and CLAUDE.md"
+        else:
+            return f"add the rule to {' and '.join(formats)} formats"
+    else:
+        return f"add the rule to {output_format} format"
+
+def save_rules_with_format(rules_content: List[str], output_format: str, directory: str) -> Dict[str, List[str]]:
+    """Save rules using the new formatter architecture.
+    
+    Args:
+        rules_content: List of rule contents (MDC format)
+        output_format: Format specification ('cursor', 'claude', 'all', etc.)
+        directory: Repository directory path
+        
+    Returns:
+        Dict mapping format name to list of created files
+    """
+    from rules_engine.formatters.manager import format_manager
+    
+    # Resolve format specification to list of formats
+    formats = format_manager.resolve_format_list(output_format)
+    
+    # Convert and save using format manager
+    results = format_manager.convert_and_save(
+        mdc_contents=rules_content,
+        formats=formats,
+        target_dir=Path(directory),
+        repo_path=Path(directory)
+    )
+    
+    return results
+
+
+
+
+async def async_start(verbose: bool, force: bool, output_format: str, directory: str):
     """Async implementation of the start command."""
     # Convert directory to absolute path
     directory = str(Path(directory).resolve())
@@ -674,7 +763,8 @@ async def async_start(verbose: bool, force: bool, directory: str):
     if mdc_files and click.confirm("\n🤔 Would you like to review and save the generated rules?"):
         click.echo("\n📝 Let's review each rule with evidence and statistics.")
         click.echo("For each rule, you can:")
-        click.echo("- Accept it (y): Add the rule to your .cursor/rules directory")
+        action_text = _get_format_action_text(output_format)
+        click.echo(f"- Accept it (y): {action_text.capitalize()}")
         click.echo("- Skip it (n): Don't add this rule")
         click.echo("- Accept all remaining (a): Accept this rule and all remaining rules")
         click.echo("- Accept high-confidence (h): Accept this rule and all remaining high-confidence rules")
@@ -901,7 +991,7 @@ async def async_start(verbose: bool, force: bool, directory: str):
             
             # Get user decision
             choice = click.prompt(
-                f"\n🤔 Add this rule to your .cursor/rules directory? (y/n/q/a/h)",
+                f"🤔 {_get_format_action_text(output_format).capitalize()}? (y/n/q/a/h)",
                 type=click.Choice(['y', 'n', 'q', 'a', 'h'], case_sensitive=False),
                 default='n'
             )
@@ -1108,16 +1198,20 @@ async def async_start(verbose: bool, force: bool, directory: str):
                                 created_files.append(str(category_file.relative_to(Path(directory))))
                         
                         click.echo("\n✅ Category files created successfully!")
-                        click.echo(f"📁 Files created in {rules_dir}:")
+                        click.echo(f"📁 Files created:")
                         for file_path in created_files:
                             click.echo(f"  • {file_path}")
                     else:
                         # Fall back to individual files with improved names
                         click.echo(f"\n💾 Saving {len(accepted_rules)} rules as individual files...")
-                        created_files = analyzer.save_mdc_files(accepted_rules, rules_dir)
+                        format_results = save_rules_with_format(accepted_rules, output_format, directory)
+                        created_files = []
+                        for fmt_name, files in format_results.items():
+                            created_files.extend(files)
                         
-                        click.echo("\n✅ Individual rule files created!")
-                        click.echo(f"📁 Files created in {rules_dir}:")
+                        format_desc = _get_format_description(output_format)
+                        click.echo(f"\n✅ Individual rule files created in {format_desc}!")
+                        click.echo(f"📁 Files created:")
                         for file_path in created_files[:5]:  # Show first 5
                             click.echo(f"  • {file_path}")
                         if len(created_files) > 5:
@@ -1125,10 +1219,14 @@ async def async_start(verbose: bool, force: bool, directory: str):
                 else:
                     # Fallback if categorization parsing fails
                     click.echo(f"\n💾 Saving {len(accepted_rules)} rules...")
-                    created_files = analyzer.save_mdc_files(accepted_rules, rules_dir)
+                    format_results = save_rules_with_format(accepted_rules, output_format, directory)
+                    created_files = []
+                    for fmt_name, files in format_results.items():
+                        created_files.extend(files)
                     
-                    click.echo("\n✅ Rules saved!")
-                    click.echo(f"📁 Files created in {rules_dir}:")
+                    format_desc = _get_format_description(output_format)
+                    click.echo(f"\n✅ Rules saved in {format_desc}!")
+                    click.echo(f"📁 Files created:")
                     for file_path in created_files[:5]:
                         click.echo(f"  • {file_path}")
                     if len(created_files) > 5:
@@ -1137,10 +1235,14 @@ async def async_start(verbose: bool, force: bool, directory: str):
             except Exception as e:
                 click.echo(f"⚠️  Categorization failed: {e}")
                 click.echo("📝 Falling back to individual rule files...")
-                created_files = analyzer.save_mdc_files(accepted_rules, rules_dir)
+                format_results = save_rules_with_format(accepted_rules, output_format, directory)
+                created_files = []
+                for fmt_name, files in format_results.items():
+                    created_files.extend(files)
                 
-                click.echo("\n✅ Rules saved as individual files!")
-                click.echo(f"📁 Files created in {rules_dir}:")
+                format_desc = _get_format_description(output_format)
+                click.echo(f"\n✅ Rules saved as individual files in {format_desc}!")
+                click.echo(f"📁 Files created:")
                 for file_path in created_files[:5]:
                     click.echo(f"  • {file_path}")
                 if len(created_files) > 5:
@@ -1151,10 +1253,14 @@ async def async_start(verbose: bool, force: bool, directory: str):
     elif mdc_files:
         # Auto-save all rules if not reviewing
         click.echo(f"\n💾 Saving all {len(mdc_files)} rules...")
-        created_files = analyzer.save_mdc_files(mdc_files, rules_dir)
+        format_results = save_rules_with_format(mdc_files, output_format, directory)
+        created_files = []
+        for fmt_name, files in format_results.items():
+            created_files.extend(files)
         
-        click.echo("\n✅ All rules saved!")
-        click.echo(f"📁 Files created in {rules_dir}:")
+        format_desc = _get_format_description(output_format)
+        click.echo(f"\n✅ All rules saved in {format_desc}!")
+        click.echo(f"📁 Files created:")
         for file_path in created_files[:5]:  # Show first 5
             click.echo(f"  • {file_path}")
         if len(created_files) > 5:
