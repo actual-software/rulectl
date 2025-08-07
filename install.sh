@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Rules Engine One-Line Installation Script
-# Usage: curl -sSL https://raw.githubusercontent.com/actualai/rules_engine/main/install.sh | bash
+# Usage: curl -sSL https://raw.githubusercontent.com/SprintReviewAI/rules_engine/main/install.sh | bash
 
 set -euo pipefail
 
@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO_URL="https://github.com/actualai/rules_engine.git"
+REPO_URL="https://github.com/SprintReviewAI/rules_engine.git"
 TEMP_DIR="/tmp/rules_engine_install_$$"
 TARGET_DIR="$HOME/.local/bin"
 BINARY_NAME="rules-engine"
