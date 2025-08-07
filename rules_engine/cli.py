@@ -687,6 +687,79 @@ async def async_start(verbose: bool, force: bool, directory: str):
         candidate_rules = analyzer._convert_to_candidate_rules(all_static_analyses, git_stats)
         clusters = analyzer._cluster_rules(candidate_rules)
         
+        # Sort rules by recommendation level (highest confidence first)
+        def get_rule_confidence_score(mdc_content):
+            """Calculate confidence score for sorting rules by recommendation level."""
+            try:
+                yaml_end = mdc_content.find('---', 3)
+                if yaml_end <= 0:
+                    return -1  # Fallback for unparseable rules
+                
+                front_matter = mdc_content[3:yaml_end].strip()
+                parsed = yaml.safe_load(front_matter)
+                
+                # Extract bullets to match against clusters
+                content_after_yaml = mdc_content[yaml_end + 3:].strip()
+                bullets = [line.strip('- ').strip() for line in content_after_yaml.split('\n') if line.strip().startswith('-')]
+
+                
+                # Find corresponding cluster for scoring
+                for key, cluster in clusters.items():
+                    if cluster.meta and cluster.meta.score >= 3.0:
+                        canonical = analyzer._choose_canonical(cluster)
+                        if any(bullet in canonical.bullets for bullet in bullets[:2]):
+                            score = cluster.meta.score
+                            support_files = cluster.meta.support_files
+                            total_edits = cluster.meta.total_edits
+                            
+                            # Map to confidence levels as defined in tracker.md
+                            # 🟢 HIGHLY RECOMMENDED (confidence 8-10)
+                            if score >= 8 or (score >= 6 and support_files >= 4):
+                                return 10  # Highest priority
+                            # 🟡 RECOMMENDED (confidence 6-8)
+                            elif score >= 6 or (score >= 4 and support_files >= 3):
+                                return 8   # High priority
+                            # 🟠 CONSIDER (confidence 4-6)
+                            elif score >= 4 or (score >= 3 and support_files >= 2):
+                                return 6   # Medium priority
+                            # 🔴 REVIEW CAREFULLY (confidence <4) - includes high activity files
+                            elif total_edits >= 20:
+                                return 4   # Low-medium priority
+                            else:
+                                return 2   # Low priority
+                
+                # Default for rules without cluster match
+                return 5  # Medium-default priority
+            except Exception:
+                return -1  # Fallback for any parsing errors
+        
+        # Sort mdc_files by confidence score (highest first)
+        sorted_rules_with_scores = [(mdc_content, get_rule_confidence_score(mdc_content)) 
+                                   for mdc_content in mdc_files]
+        sorted_rules_with_scores.sort(key=lambda x: x[1], reverse=True)
+        mdc_files = [rule[0] for rule in sorted_rules_with_scores]
+        
+        # Display sorting information
+        if mdc_files:
+            confidence_counts = {}
+            for _, score in sorted_rules_with_scores:
+                if score >= 10:
+                    level = "🟢 HIGHLY RECOMMENDED"
+                elif score >= 8:
+                    level = "🟡 RECOMMENDED" 
+                elif score >= 6:
+                    level = "🟠 CONSIDER"
+                elif score >= 4:
+                    level = "🔴 REVIEW CAREFULLY"
+                else:
+                    level = "⚪ NEEDS REVIEW"
+                confidence_counts[level] = confidence_counts.get(level, 0) + 1
+            
+            click.echo(f"\n📊 Rules sorted by recommendation level:")
+            for level, count in confidence_counts.items():
+                click.echo(f"   • {level}: {count} rules")
+            click.echo("")
+        
         for i, mdc_content in enumerate(mdc_files, 1):
             try:
                 # Parse the rule to show details
@@ -796,16 +869,17 @@ async def async_start(verbose: bool, force: bool, directory: str):
                         support_files = cluster_info.meta.support_files
                         total_edits = cluster_info.meta.total_edits
                         
-                        if score >= 10 and support_files >= 4:
-                            recommendation = "🟢 HIGHLY RECOMMENDED - Strong pattern with wide usage"
-                        elif score >= 6 and support_files >= 3:
-                            recommendation = "🟡 RECOMMENDED - Good pattern with moderate usage"
-                        elif score >= 4 and support_files >= 2:
-                            recommendation = "🟠 CONSIDER - Decent pattern, review evidence carefully"
-                        elif total_edits >= 20:
-                            recommendation = "🔵 WORTH CONSIDERING - High-activity files, may be important"
+                        # Updated recommendation levels to match tracker.md requirements
+                        if score >= 8 or (score >= 6 and support_files >= 4):
+                            recommendation = "🟢 HIGHLY RECOMMENDED - Strong pattern with wide usage (confidence 8-10)"
+                        elif score >= 6 or (score >= 4 and support_files >= 3):
+                            recommendation = "🟡 RECOMMENDED - Good pattern with moderate usage (confidence 6-8)"
+                        elif score >= 4 or (score >= 3 and support_files >= 2):
+                            recommendation = "🟠 CONSIDER - Decent pattern, review evidence carefully (confidence 4-6)"
+                        elif total_edits >= 20 or score >= 3:
+                            recommendation = "🔴 REVIEW CAREFULLY - Limited evidence or high-activity files (confidence <4)"
                         else:
-                            recommendation = "⚪ OPTIONAL - Limited evidence, use your judgment"
+                            recommendation = "🔴 REVIEW CAREFULLY - Minimal evidence, use your judgment (confidence <4)"
                         
                         click.echo(f"\n🎯 Recommendation: {recommendation}")
                             
@@ -814,7 +888,7 @@ async def async_start(verbose: bool, force: bool, directory: str):
                         click.echo(f"\n📊 Evidence & Statistics:")
                         click.echo(f"    • This rule was generated from analyzed patterns")
                         click.echo(f"    • Confidence: Medium (standalone rule)")
-                        click.echo(f"\n🎯 Recommendation: 🟠 CONSIDER - Review carefully")
+                        click.echo(f"\n🎯 Recommendation: 🟠 CONSIDER - Review carefully (confidence ~5)")
                     
                 else:
                     click.echo(f"\nRule {i}/{len(mdc_files)}: (Unable to parse rule details)")
