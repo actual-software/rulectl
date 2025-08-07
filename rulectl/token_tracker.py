@@ -80,7 +80,7 @@ class TokenTracker:
         # Initialize BAML Collector if available
         try:
             from baml_py import Collector
-            self.collector = Collector(name="rules-engine-tracker")
+            self.collector = Collector(name="rulectl-tracker")
         except ImportError:
             # Fallback if Collector not available
             self.collector = None
@@ -140,7 +140,7 @@ class TokenTracker:
             config_paths.append(bundle_dir / "model_pricing.yaml")
         
         # For development, check relative to this file
-        current_dir = Path(__file__).parent.parent  # Go up from rules_engine/ to root
+        current_dir = Path(__file__).parent.parent  # Go up from rulectl/ to root
         config_paths.append(current_dir / "config" / "model_pricing.yaml")
         
         # Try each path until we find the config file

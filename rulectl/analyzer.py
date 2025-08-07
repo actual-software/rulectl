@@ -111,7 +111,7 @@ class RepoAnalyzer:
             from .token_tracker import TokenTracker
         except ImportError:
             try:
-                from rules_engine.token_tracker import TokenTracker
+                from rulectl.token_tracker import TokenTracker
             except ImportError:
                 # Fallback if import fails
                 TokenTracker = None
@@ -247,7 +247,7 @@ class RepoAnalyzer:
             
             # ===== TOOL-SPECIFIC =====
             '.cursor/rules.mdc', '.cursor/rules/',  # Our rules file
-            '.rules_engine/*', '.rules_engine/',  # Our analysis files
+            '.rulectl/*', '.rulectl/',  # Our analysis files
             '.terraform/', 'terraform.tfstate', '*.tfstate',
             '.vagrant/', 'Vagrantfile.local',
             '.docker/', 'docker-compose.override.yml',

@@ -43,7 +43,7 @@ For more control or if the one-line installer doesn't work:
 1. **Clone the repository:**
 ```bash
 git clone https://github.com/actual-software/rulectl.git
-cd rules_engine
+cd rulectl
 ```
 
 2. **Set up virtual environment:**
@@ -65,15 +65,15 @@ python build.py
 5. **Install to system:**
 ```bash
 # Copy to ~/.local/bin (recommended)
-cp dist/rules-engine ~/.local/bin/
+cp dist/rulectl ~/.local/bin/
 
 # OR copy to /usr/local/bin (requires sudo, system-wide)
-sudo cp dist/rules-engine /usr/local/bin/
+sudo cp dist/rulectl /usr/local/bin/
 ```
 
 6. **Verify installation:**
 ```bash
-rules-engine --help
+rulectl --help
 ```
 
 The executable contains all dependencies and doesn't require Python on the target machine.
@@ -103,7 +103,7 @@ pip install -r requirements.txt
 
 4. Run the CLI:
 ```bash
-python -m rules_engine.cli start
+python -m rulectl.cli start
 ```
 
 5. When you're done, deactivate the virtual environment:
@@ -118,19 +118,19 @@ Note: Make sure to add `venv/` to your `.gitignore` file to avoid committing the
 Basic usage (analyze current directory):
 
 ```bash
-rules-engine start
+rulectl start
 ```
 
 Analyze a specific directory:
 
 ```bash
-rules-engine start ~/path/to/repository
+rulectl start ~/path/to/repository
 ```
 
 With verbose output:
 
 ```bash
-rules-engine start --verbose ~/path/to/repository
+rulectl start --verbose ~/path/to/repository
 ```
 
 The tool will:
@@ -143,7 +143,7 @@ Note: The build process automatically runs BAML generation, so built executables
 
 The rules and analysis files will be created in the target repository under:
 - `.cursor/rules.mdc` - The rules file
-- `.rules_engine/analysis.json` - Analysis results
+- `.rulectl/analysis.json` - Analysis results
 
 ## Project Structure
 
