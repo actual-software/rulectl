@@ -18,19 +18,22 @@ A simple command-line tool for managing cursor rules in Git repositories.
 ### Build from Source
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/your-org/rules-engine.git
 cd rules-engine
 ```
 
 2. Install all dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
 
 3. Build the executable:
+
 ```bash
-python build.py
+RULES_ENGINE_BUILD=1 python build.py
 ```
 
 The executable will be created in the `dist` directory. You can distribute this executable to others - it contains all dependencies and doesn't require Python to be installed.
@@ -40,11 +43,13 @@ The executable will be created in the `dist` directory. You can distribute this 
 If you want to run the CLI directly without building:
 
 1. Create a virtual environment:
+
 ```bash
 python3 -m venv venv
 ```
 
 2. Activate the virtual environment:
+
 ```bash
 # On macOS/Linux:
 source venv/bin/activate
@@ -54,16 +59,19 @@ source venv/bin/activate
 ```
 
 3. Install dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
 
 4. Run the CLI:
+
 ```bash
 python -m rules_engine.cli start
 ```
 
 5. When you're done, deactivate the virtual environment:
+
 ```bash
 deactivate
 ```
@@ -91,6 +99,7 @@ rules-engine start --verbose ~/path/to/repository
 ```
 
 The tool will:
+
 1. Check if the specified directory is a Git repository
 2. Initialize BAML client code generation
 3. Create an empty rules file if none exists
@@ -99,6 +108,7 @@ The tool will:
 Note: The build process automatically runs BAML generation, so built executables don't need this step.
 
 The rules and analysis files will be created in the target repository under:
+
 - `.cursor/rules.mdc` - The rules file
 - `.rules_engine/analysis.json` - Analysis results
 
