@@ -15,25 +15,68 @@ A simple command-line tool for managing cursor rules in Git repositories.
 
 ## Installation
 
-### Build from Source
+### One-Line Installation (Recommended)
 
-1. Clone the repository:
+Install directly to your system with a single command:
+
 ```bash
-git clone https://github.com/your-org/rules-engine.git
-cd rules-engine
+curl -sSL https://raw.githubusercontent.com/actualai/rules_engine/main/install.sh | bash
 ```
 
-2. Install all dependencies:
+This will:
+- ✅ Check Python 3.6+ and git dependencies
+- ✅ Clone and build the latest version automatically  
+- ✅ Install to `~/.local/bin` (no sudo required)
+- ✅ Verify installation works correctly
+- ✅ Clean up temporary files
+
+**First time setup:** If `~/.local/bin` isn't in your PATH, add this to your shell profile:
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc  # or ~/.zshrc
+source ~/.bashrc  # or ~/.zshrc
+```
+
+### Manual Installation
+
+For more control or if the one-line installer doesn't work:
+
+1. **Clone the repository:**
+```bash
+git clone https://github.com/actualai/rules_engine.git
+cd rules_engine
+```
+
+2. **Set up virtual environment:**
+```bash
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. **Install dependencies:**
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Build the executable:
+4. **Build the executable:**
 ```bash
 python build.py
 ```
 
-The executable will be created in the `dist` directory. You can distribute this executable to others - it contains all dependencies and doesn't require Python to be installed.
+5. **Install to system:**
+```bash
+# Copy to ~/.local/bin (recommended)
+cp dist/rules-engine ~/.local/bin/
+
+# OR copy to /usr/local/bin (requires sudo, system-wide)
+sudo cp dist/rules-engine /usr/local/bin/
+```
+
+6. **Verify installation:**
+```bash
+rules-engine --help
+```
+
+The executable contains all dependencies and doesn't require Python on the target machine.
 
 ## Local Development
 
