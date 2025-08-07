@@ -42,7 +42,7 @@ For more control or if the one-line installer doesn't work:
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/actual-software/rules_engine.git
+git clone https://github.com/actual-software/rulectl.git
 cd rules_engine
 ```
 
