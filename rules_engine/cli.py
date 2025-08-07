@@ -642,6 +642,8 @@ async def async_start(verbose: bool, force: bool, directory: str):
         click.echo("For each rule, you can:")
         click.echo("- Accept it (y): Add the rule to your .cursor/rules directory")
         click.echo("- Skip it (n): Don't add this rule")
+        click.echo("- Accept all remaining (a): Accept this rule and all remaining rules")
+        click.echo("- Accept high-confidence (h): Accept this rule and all remaining high-confidence rules")
         click.echo("- Quit (q): Stop reviewing rules\n")
         
         accepted_rules = []
@@ -791,8 +793,8 @@ async def async_start(verbose: bool, force: bool, directory: str):
             
             # Get user decision
             choice = click.prompt(
-                f"\n🤔 Add this rule to your .cursor/rules directory? (y/n/q)",
-                type=click.Choice(['y', 'n', 'q'], case_sensitive=False),
+                f"\n🤔 Add this rule to your .cursor/rules directory? (y/n/q/a/h)",
+                type=click.Choice(['y', 'n', 'q', 'a', 'h'], case_sensitive=False),
                 default='n'
             )
             
@@ -801,6 +803,70 @@ async def async_start(verbose: bool, force: bool, directory: str):
             
             if choice == 'y':
                 accepted_rules.append(mdc_content)
+            elif choice == 'a':
+                # Accept all remaining rules
+                click.echo(f"\n✅ Accepting this rule and all {len(mdc_files) - i} remaining rules...")
+                accepted_rules.append(mdc_content)
+                # Add all remaining rules
+                for remaining_content in mdc_files[i:]:
+                    accepted_rules.append(remaining_content)
+                break
+            elif choice == 'h':
+                # Accept high-confidence rules (current rule if high-confidence, plus remaining high-confidence rules)
+                high_confidence_count = 0
+                
+                # Check if current rule is high-confidence
+                current_is_high_confidence = False
+                if cluster_info and cluster_info.meta:
+                    score = cluster_info.meta.score
+                    support_files = cluster_info.meta.support_files
+                    # High confidence: score >= 8 and support_files >= 3 (combining HIGHLY RECOMMENDED and RECOMMENDED)
+                    if score >= 8 and support_files >= 3:
+                        current_is_high_confidence = True
+                        accepted_rules.append(mdc_content)
+                        high_confidence_count += 1
+                
+                # Process remaining rules to find high-confidence ones
+                for j, remaining_content in enumerate(mdc_files[i:], start=i+1):
+                    try:
+                        # Parse the rule to get cluster info
+                        yaml_end = remaining_content.find('---', 3)
+                        if yaml_end > 0:
+                            front_matter = remaining_content[3:yaml_end].strip()
+                            parsed = yaml.safe_load(front_matter)
+                            bullets = [line.strip('- ').strip() for line in remaining_content[yaml_end + 3:].strip().split('\n') if line.strip().startswith('-')]
+                            
+                            # Find corresponding cluster for this rule
+                            remaining_cluster_info = None
+                            for key, cluster in clusters.items():
+                                if cluster.meta and cluster.meta.score >= 3.0:
+                                    canonical = analyzer._choose_canonical(cluster)
+                                    if any(bullet in canonical.bullets for bullet in bullets[:2]):
+                                        remaining_cluster_info = cluster
+                                        break
+                            
+                            # Check if this rule is high-confidence
+                            if remaining_cluster_info and remaining_cluster_info.meta:
+                                score = remaining_cluster_info.meta.score
+                                support_files = remaining_cluster_info.meta.support_files
+                                if score >= 8 and support_files >= 3:
+                                    accepted_rules.append(remaining_content)
+                                    high_confidence_count += 1
+                    except Exception:
+                        continue
+                
+                if high_confidence_count > 0:
+                    if current_is_high_confidence:
+                        click.echo(f"\n✅ Accepting this rule and {high_confidence_count - 1} additional high-confidence rules...")
+                    else:
+                        click.echo(f"\n✅ Current rule doesn't meet high-confidence criteria, but accepting {high_confidence_count} high-confidence rules from remaining...")
+                else:
+                    if current_is_high_confidence:
+                        click.echo(f"\n✅ Accepting this high-confidence rule. No other high-confidence rules found in remaining...")
+                    else:
+                        click.echo(f"\n⚠️  Current rule and remaining rules don't meet high-confidence criteria (score >= 8, files >= 3). Continuing with individual selection...")
+                        continue
+                break
         
         # Save accepted rules
         if accepted_rules:
@@ -851,6 +917,7 @@ async def async_start(verbose: bool, force: bool, directory: str):
                     
                     if click.confirm(f"\n✅ Create {len(categories)} category files with these groupings?", default=True):
                         created_files = []
+                        overwrite_all = False  # Track if user wants to overwrite all existing files
                         
                         for category in categories:
                             if not category.rules:
@@ -890,17 +957,36 @@ async def async_start(verbose: bool, force: bool, directory: str):
                             
                             # Handle existing files
                             if category_file.exists():
-                                if click.confirm(f"📄 {category.category_name}.mdc already exists. Overwrite?", default=False):
+                                if overwrite_all:
+                                    # User already chose to overwrite all files
                                     category_file.write_text(category_content, encoding='utf-8')
                                     created_files.append(str(category_file.relative_to(Path(directory))))
                                 else:
-                                    # Create with a number suffix
-                                    counter = 1
-                                    while (rules_dir / f"{category.category_name}-{counter}.mdc").exists():
-                                        counter += 1
-                                    category_file = rules_dir / f"{category.category_name}-{counter}.mdc"
-                                    category_file.write_text(category_content, encoding='utf-8')
-                                    created_files.append(str(category_file.relative_to(Path(directory))))
+                                    # Ask user for this specific file
+                                    choice = click.prompt(
+                                        f"📄 {category.category_name}.mdc already exists. Overwrite? (y/n/a)",
+                                        type=click.Choice(['y', 'n', 'a'], case_sensitive=False),
+                                        default='n'
+                                    )
+                                    
+                                    if choice == 'a':
+                                        # Overwrite this file and all remaining files
+                                        overwrite_all = True
+                                        click.echo("✅ Will overwrite all remaining existing files...")
+                                        category_file.write_text(category_content, encoding='utf-8')
+                                        created_files.append(str(category_file.relative_to(Path(directory))))
+                                    elif choice == 'y':
+                                        # Overwrite just this file
+                                        category_file.write_text(category_content, encoding='utf-8')
+                                        created_files.append(str(category_file.relative_to(Path(directory))))
+                                    else:
+                                        # Create with a number suffix
+                                        counter = 1
+                                        while (rules_dir / f"{category.category_name}-{counter}.mdc").exists():
+                                            counter += 1
+                                        category_file = rules_dir / f"{category.category_name}-{counter}.mdc"
+                                        category_file.write_text(category_content, encoding='utf-8')
+                                        created_files.append(str(category_file.relative_to(Path(directory))))
                             else:
                                 category_file.write_text(category_content, encoding='utf-8')
                                 created_files.append(str(category_file.relative_to(Path(directory))))
