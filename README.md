@@ -20,7 +20,7 @@ A simple command-line tool for managing cursor rules in Git repositories.
 Install directly to your system with a single command:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/actualai/rules_engine/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/SprintReviewAI/rules_engine/main/install.sh | bash
 ```
 
 This will:
@@ -42,7 +42,7 @@ For more control or if the one-line installer doesn't work:
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/actualai/rules_engine.git
+git clone https://github.com/SprintReviewAI/rules_engine.git
 cd rules_engine
 ```
 
