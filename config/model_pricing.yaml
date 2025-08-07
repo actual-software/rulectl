@@ -30,8 +30,8 @@ models:
   claude-sonnet-4-20250514:
     name: "Claude 4 Sonnet"
     provider: "Anthropic"
-    input_cost_per_1m: 15.0   # USD per 1M input tokens
-    output_cost_per_1m: 75.0  # USD per 1M output tokens
+    input_cost_per_1m: 3.0   # USD per 1M input tokens
+    output_cost_per_1m: 15.0  # USD per 1M output tokens
     notes: "Most capable Claude 4 model - primary choice for complex analysis"
     release_date: "2025-05-14"
     context_window: 200000    # tokens
