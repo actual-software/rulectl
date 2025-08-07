@@ -339,16 +339,6 @@ async def async_start(verbose: bool, force: bool, directory: str):
     # Initialize analyzer with the specified directory
     analyzer = RepoAnalyzer(directory)
     
-    # Debug: Check if TokenTracker was initialized
-    if analyzer.token_tracker:
-        click.echo(f"🔍 DEBUG: TokenTracker initialized successfully")
-        if hasattr(analyzer.token_tracker, 'collector') and analyzer.token_tracker.collector:
-            click.echo(f"🔍 DEBUG: BAML Collector available")
-        else:
-            click.echo(f"🔍 DEBUG: BAML Collector not available, using fallback")
-    else:
-        click.echo(f"❌ DEBUG: TokenTracker is None!")
-    
     # Check for .gitignore
     if not analyzer.has_gitignore():
         click.echo("\n⚠️  WARNING: No .gitignore file found! ⚠️")

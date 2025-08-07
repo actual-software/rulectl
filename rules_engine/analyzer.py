@@ -108,10 +108,10 @@ class RepoAnalyzer:
         
         # Initialize token tracker
         try:
-            from .utils import TokenTracker
+            from .token_tracker import TokenTracker
         except ImportError:
             try:
-                from rules_engine.utils import TokenTracker
+                from rules_engine.token_tracker import TokenTracker
             except ImportError:
                 # Fallback if import fails
                 TokenTracker = None
