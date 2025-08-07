@@ -339,6 +339,16 @@ async def async_start(verbose: bool, force: bool, directory: str):
     # Initialize analyzer with the specified directory
     analyzer = RepoAnalyzer(directory)
     
+    # Debug: Check if TokenTracker was initialized
+    if analyzer.token_tracker:
+        click.echo(f"🔍 DEBUG: TokenTracker initialized successfully")
+        if hasattr(analyzer.token_tracker, 'collector') and analyzer.token_tracker.collector:
+            click.echo(f"🔍 DEBUG: BAML Collector available")
+        else:
+            click.echo(f"🔍 DEBUG: BAML Collector not available, using fallback")
+    else:
+        click.echo(f"❌ DEBUG: TokenTracker is None!")
+    
     # Check for .gitignore
     if not analyzer.has_gitignore():
         click.echo("\n⚠️  WARNING: No .gitignore file found! ⚠️")
@@ -462,10 +472,24 @@ async def async_start(verbose: bool, force: bool, directory: str):
     click.echo("\n🔎 Analyzing files...")
     all_static_analyses = []
     
+    def get_progress_info(file_path):
+        if not file_path:
+            return ""
+        
+        # Always show token info, even if 0
+        token_info = " | 📊 0 tokens ($0.00)"  # Default
+        
+        if analyzer.token_tracker:
+            current_tokens = analyzer.token_tracker.get_total_tokens()
+            current_cost = analyzer.token_tracker.total_cost
+            token_info = f" | 📊 {current_tokens:,} tokens (${current_cost:.2f})"
+        
+        return f"Current: {file_path}{token_info}"
+    
     with click.progressbar(
         all_files,
         label="Analyzing files",
-        item_show_func=lambda x: f"Current file: {x}" if x else ""
+        item_show_func=get_progress_info
     ) as bar:
         for file_path in bar:
             # Analyze individual file
@@ -475,9 +499,24 @@ async def async_start(verbose: bool, force: bool, directory: str):
             
             if verbose:
                 status = "✓" if result else "⚠"
-                click.echo(f"\n{status} {file_path}")
+                
+                # Always show token info in verbose mode
+                token_info = " | 📊 0 tokens ($0.00)"  # Default
+                if analyzer.token_tracker:
+                    current_tokens = analyzer.token_tracker.get_total_tokens()
+                    current_cost = analyzer.token_tracker.total_cost
+                    token_info = f" | 📊 {current_tokens:,} tokens (${current_cost:.2f})"
+                    # Debug: Additional info in verbose mode
+
+                
+
     
-    click.echo(f"\n✅ Successfully analyzed {len(all_static_analyses)} files")
+    # Display file analysis results with token tracking
+    if analyzer.token_tracker:
+        token_summary = analyzer.token_tracker.get_current_summary()
+        click.echo(f"\n✅ Successfully analyzed {len(all_static_analyses)} files | {token_summary}")
+    else:
+        click.echo(f"\n✅ Successfully analyzed {len(all_static_analyses)} files")
     
     # Step 4: Analyze git history for file importance
     click.echo("\n📊 Analyzing git history for file importance...")
@@ -628,6 +667,11 @@ async def async_start(verbose: bool, force: bool, directory: str):
     analyzer.save_findings(str(analysis_file))
     
     click.echo("\n✅ Analysis complete!")
+    
+    # Show comprehensive token usage summary
+    if analyzer.token_tracker:
+        detailed_summary = analyzer.token_tracker.get_detailed_summary()
+        click.echo(f"\n{detailed_summary}")
     
     # Show summary
     structure = analyzer.findings["repository"]["structure"]
@@ -843,7 +887,15 @@ async def async_start(verbose: bool, force: bool, directory: str):
                 
                 if rules_for_categorization:
                     # Use LLM to categorize the rules
-                    categories = await analyzer.client.CategorizeAcceptedRules(accepted_rules=rules_for_categorization)
+                    baml_options = analyzer.token_tracker.get_baml_options() if analyzer.token_tracker else {}
+                    categories = await analyzer.client.CategorizeAcceptedRules(
+                        accepted_rules=rules_for_categorization,
+                        baml_options=baml_options
+                    )
+                    
+                    # Track token usage from this call
+                    if analyzer.token_tracker:
+                        analyzer.token_tracker.track_call_from_collector('rule_categorization', 'claude-sonnet-4-20250514')
                     
                     click.echo(f"\n📂 Suggested categories:")
                     for i, category in enumerate(categories, 1):

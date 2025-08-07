@@ -105,6 +105,19 @@ class RepoAnalyzer:
         self.repo_path = Path(repo_path).resolve()  # Get absolute path
         self.max_batch_size = max_batch_size
         self.client = b
+        
+        # Initialize token tracker
+        try:
+            from .utils import TokenTracker
+        except ImportError:
+            try:
+                from rules_engine.utils import TokenTracker
+            except ImportError:
+                # Fallback if import fails
+                TokenTracker = None
+        
+        self.token_tracker = TokenTracker() if TokenTracker else None
+        
         self.findings = {
             "repository": {
                 "structure": {},
@@ -666,8 +679,13 @@ class RepoAnalyzer:
             extension=full_path.suffix
         )
         
-        # Analyze individual file
-        analysis = await self.client.AnalyzeFileForConventions(file=file_info)
+        # Analyze individual file with token tracking
+        baml_options = self.token_tracker.get_baml_options() if self.token_tracker else {}
+        analysis = await self.client.AnalyzeFileForConventions(file=file_info, baml_options=baml_options)
+        
+        # Track token usage from this call
+        if self.token_tracker:
+            self.token_tracker.track_call_from_collector('file_analysis', 'claude-sonnet-4-20250514')
         
         # Store the serialized version in findings
         self.findings["batches"].append(analysis.model_dump())
@@ -1090,11 +1108,17 @@ Here is the JSON array of merged candidate rules:
                 # Only audit if we have multiple rules in the cluster
                 if len(cluster.rules) > 1:
                     # Use LLM to audit and improve the merged rule
+                    baml_options = self.token_tracker.get_baml_options() if self.token_tracker else {}
                     audited_rule = await self.client.AuditMergedRule(
                         cluster_key=cluster.key,
                         merged_rule=merged_rule,
-                        original_rules=original_rules
+                        original_rules=original_rules,
+                        baml_options=baml_options
                     )
+                    
+                    # Track token usage from this call
+                    if self.token_tracker:
+                        self.token_tracker.track_call_from_collector('rule_auditing', 'claude-sonnet-4-20250514')
                     improved_rules.append(audited_rule)
                 else:
                     # Single rule clusters don't need auditing
@@ -1171,6 +1195,8 @@ Here is the JSON array of merged candidate rules:
         Returns:
             List of synthesized rule candidates
         """
+        baml_options = self.token_tracker.get_baml_options() if self.token_tracker else {}
+        
         if importance_weights:
             # Apply importance weights to analyses
             weighted_analyses = self.apply_importance_weights(analyses, importance_weights)
@@ -1178,10 +1204,14 @@ Here is the JSON array of merged candidate rules:
             # For now, we'll still pass all analyses to SynthesizeRules
             # but we could modify the BAML function to accept weights in the future
             # TODO: Update BAML schema to accept weighted analyses
-            rules = await self.client.SynthesizeRules(analyses=analyses)
+            rules = await self.client.SynthesizeRules(analyses=analyses, baml_options=baml_options)
         else:
             # Generate rules without weighting
-            rules = await self.client.SynthesizeRules(analyses=analyses)
+            rules = await self.client.SynthesizeRules(analyses=analyses, baml_options=baml_options)
+        
+        # Track token usage from this call
+        if self.token_tracker:
+            self.token_tracker.track_call_from_collector('rule_synthesis', 'claude-sonnet-4-20250514')
         
         # Store the serialized version in findings
         self.findings["rules"] = [rule.model_dump() for rule in rules]
@@ -1361,10 +1391,16 @@ Here is the JSON array of merged candidate rules:
                 for f in file_infos
             ]
             
+            baml_options = self.token_tracker.get_baml_options() if self.token_tracker else {}
             result = await self.client.ReviewSkippedFiles(
                 project_info=project_info,
-                skipped_files=baml_file_infos
+                skipped_files=baml_file_infos,
+                baml_options=baml_options
             )
+            
+            # Track token usage from this call
+            if self.token_tracker:
+                self.token_tracker.track_call_from_collector('file_review', 'claude-sonnet-4-20250514')
             
             return result.files_to_analyze, result.reasoning
             
