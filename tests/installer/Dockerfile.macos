@@ -1,42 +1,8 @@
-# Test macOS installation path on Linux (since we can't run actual macOS in Docker)
-# This tests the Linux installation path which is what would be used on macOS without Homebrew
-FROM ubuntu:22.04
-
-# Prevent interactive prompts during package installation
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Install all necessary build dependencies for Python compilation
-RUN apt-get update && apt-get install -y \
-    curl \
-    git \
-    build-essential \
-    libssl-dev \
-    zlib1g-dev \
-    libbz2-dev \
-    libreadline-dev \
-    libsqlite3-dev \
-    wget \
-    llvm \
-    libncurses5-dev \
-    libncursesw5-dev \
-    xz-utils \
-    tk-dev \
-    libffi-dev \
-    liblzma-dev \
-    python3-openssl \
-    sudo \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create a test user
-RUN useradd -m -d /home/testuser -s /bin/bash testuser && \
-    echo 'testuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-
-# Switch to test user
-USER testuser
-WORKDIR /home/testuser
+# Use the actual macOS Docker image
+FROM dockur/macos:latest
 
 # Copy test script
-COPY --chown=testuser:testuser test_installer_macos.sh /home/testuser/test_installer.sh
-RUN chmod +x /home/testuser/test_installer.sh
+COPY test_installer_macos.sh /home/test_installer.sh
+RUN chmod +x /home/test_installer.sh
 
-ENTRYPOINT ["/home/testuser/test_installer.sh"]
+ENTRYPOINT ["/home/test_installer.sh"]
