@@ -121,6 +121,9 @@ fi
 log_test "Downloading and running installer"
 
 # Create a response file to auto-answer prompts
+# y = install pyenv
+# y = install Python
+# (build dependencies are already installed in the Docker image)
 cat > /tmp/installer_responses <<EOF
 y
 y

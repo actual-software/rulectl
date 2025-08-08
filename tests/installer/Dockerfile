@@ -4,7 +4,8 @@ FROM ubuntu:22.04
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install basic dependencies that would typically be present
+# Install basic dependencies and Python build dependencies
+# These are the same dependencies our installer would install
 RUN apt-get update && apt-get install -y \
     curl \
     git \

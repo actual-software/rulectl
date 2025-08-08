@@ -73,6 +73,95 @@ detect_os() {
     esac
 }
 
+# Function to install Python build dependencies
+install_python_build_deps() {
+    local os_type="$1"
+    
+    log_info "Installing Python build dependencies..."
+    
+    case "$os_type" in
+        macos)
+            # macOS typically has Xcode command line tools which include necessary compilers
+            # Check if Xcode command line tools are installed
+            if ! xcode-select -p &> /dev/null; then
+                log_info "Installing Xcode Command Line Tools..."
+                xcode-select --install 2>/dev/null || true
+                log_warning "Please complete Xcode Command Line Tools installation if prompted"
+            fi
+            ;;
+            
+        linux)
+            # Detect Linux distribution
+            if [ -f /etc/debian_version ]; then
+                # Debian/Ubuntu
+                log_info "Detected Debian/Ubuntu, installing build dependencies..."
+                if command -v sudo &> /dev/null; then
+                    sudo apt-get update
+                    sudo apt-get install -y build-essential libssl-dev zlib1g-dev \
+                        libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
+                        libncurses5-dev libncursesw5-dev xz-utils tk-dev \
+                        libffi-dev liblzma-dev python3-openssl git
+                elif [ "$EUID" -eq 0 ]; then
+                    apt-get update
+                    apt-get install -y build-essential libssl-dev zlib1g-dev \
+                        libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
+                        libncurses5-dev libncursesw5-dev xz-utils tk-dev \
+                        libffi-dev liblzma-dev python3-openssl git
+                else
+                    log_warning "Cannot install build dependencies without sudo or root access"
+                    log_info "Please install: build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev"
+                    return 1
+                fi
+            elif [ -f /etc/redhat-release ]; then
+                # RHEL/CentOS/Fedora
+                log_info "Detected RHEL/CentOS/Fedora, installing build dependencies..."
+                if command -v sudo &> /dev/null; then
+                    sudo yum groupinstall -y "Development Tools"
+                    sudo yum install -y gcc openssl-devel bzip2-devel libffi-devel \
+                        zlib-devel readline-devel sqlite-devel wget curl git
+                elif [ "$EUID" -eq 0 ]; then
+                    yum groupinstall -y "Development Tools"
+                    yum install -y gcc openssl-devel bzip2-devel libffi-devel \
+                        zlib-devel readline-devel sqlite-devel wget curl git
+                else
+                    log_warning "Cannot install build dependencies without sudo or root access"
+                    log_info "Please install development tools and Python build dependencies"
+                    return 1
+                fi
+            elif [ -f /etc/arch-release ]; then
+                # Arch Linux
+                log_info "Detected Arch Linux, installing build dependencies..."
+                if command -v sudo &> /dev/null; then
+                    sudo pacman -Sy --noconfirm base-devel openssl zlib bzip2 \
+                        readline sqlite curl git
+                elif [ "$EUID" -eq 0 ]; then
+                    pacman -Sy --noconfirm base-devel openssl zlib bzip2 \
+                        readline sqlite curl git
+                else
+                    log_warning "Cannot install build dependencies without sudo or root access"
+                    return 1
+                fi
+            else
+                log_warning "Unknown Linux distribution. Please install Python build dependencies manually."
+                log_info "Common packages needed: gcc, make, openssl-dev, zlib-dev, readline-dev, sqlite-dev"
+                return 1
+            fi
+            ;;
+            
+        windows)
+            log_warning "On Windows, please ensure you have Visual Studio or MinGW installed for C compilation"
+            ;;
+            
+        *)
+            log_warning "Unknown OS. Please install a C compiler and Python build dependencies manually."
+            return 1
+            ;;
+    esac
+    
+    log_success "Build dependencies installation completed"
+    return 0
+}
+
 # Function to install pyenv
 install_pyenv() {
     local os_type="$1"
@@ -258,6 +347,25 @@ if ! check_python_version; then
         read REPLY
     fi
     if [[ $REPLY =~ ^[Yy]$ ]]; then
+        # First, ensure build dependencies are installed
+        if ! command -v gcc &> /dev/null && ! command -v clang &> /dev/null; then
+            log_info "C compiler not found. Installing build dependencies..."
+            if [ -t 0 ]; then
+                # Interactive mode
+                read -p "Would you like to install Python build dependencies? (y/n): " -n 1 -r
+                echo
+            else
+                # Non-interactive mode - read full line
+                echo -n "Would you like to install Python build dependencies? (y/n): "
+                read REPLY
+            fi
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                install_python_build_deps "$OS_TYPE" || log_warning "Failed to install some build dependencies, continuing anyway..."
+            else
+                log_warning "Build dependencies are required to compile Python. Installation may fail."
+            fi
+        fi
+        
         install_python_with_pyenv "$LATEST_PYTHON"
         
         # Re-initialize pyenv to ensure shims are loaded
