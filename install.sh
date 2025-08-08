@@ -190,8 +190,15 @@ if ! check_python_version; then
     
     # Check if pyenv is already installed
     if ! command -v pyenv &> /dev/null; then
-        read -p "Would you like to install pyenv to manage Python versions? (y/n): " -n 1 -r
-        echo
+        if [ -t 0 ]; then
+            # Interactive mode
+            read -p "Would you like to install pyenv to manage Python versions? (y/n): " -n 1 -r
+            echo
+        else
+            # Non-interactive mode - read full line
+            echo -n "Would you like to install pyenv to manage Python versions? (y/n): "
+            read REPLY
+        fi
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             install_pyenv "$OS_TYPE"
             
@@ -241,8 +248,15 @@ if ! check_python_version; then
         LATEST_PYTHON="3.12.0"
     fi
     
-    read -p "Would you like to install Python $LATEST_PYTHON? (y/n): " -n 1 -r
-    echo
+    if [ -t 0 ]; then
+        # Interactive mode
+        read -p "Would you like to install Python $LATEST_PYTHON? (y/n): " -n 1 -r
+        echo
+    else
+        # Non-interactive mode - read full line
+        echo -n "Would you like to install Python $LATEST_PYTHON? (y/n): "
+        read REPLY
+    fi
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         install_python_with_pyenv "$LATEST_PYTHON"
         
