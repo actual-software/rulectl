@@ -144,5 +144,5 @@ The tool will:
 Note: The build process automatically runs BAML generation, so built executables don't need this step.
 
 The rules and analysis files will be created in the target repository under:
-- The rules file: `.cursor/rules.mdc`, `Claude.md`
+- The rules file: `.cursor/rules.mdc`
 - Analysis results: `.rulectl/analysis.json`

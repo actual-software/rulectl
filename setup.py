@@ -17,11 +17,11 @@ setup(
     name="rulectl",
     version="0.1.0",
     author="Rulectl Team",
-    author_email="team@rulectl.dev",
+    author_email="info@rulectl.com",
     description="A CLI tool for analyzing and creating cursor rules in repositories",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/rulectl/rulectl",
+    url="https://github.com/actual-software/rulectl",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
