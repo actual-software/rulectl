@@ -35,7 +35,7 @@ ENV/
 .DS_Store
 
 # Project specific
-.rules_engine/analysis.json
+.rulectl/analysis.json
 
 # Testing
 .coverage

@@ -31,13 +31,13 @@ def build_executable():
     
     # Determine the executable name based on platform
     if platform.system() == "Windows":
-        exe_name = "rules-engine.exe"
+        exe_name = "rulectl.exe"
     else:
-        exe_name = "rules-engine"
+        exe_name = "rulectl"
 
     # PyInstaller arguments
     args = [
-        'rules_engine/cli.py',  # Your entry point
+        'rulectl/cli.py',  # Your entry point
         '--name=%s' % exe_name,
         '--onefile',  # Create a single executable
         '--clean',  # Clean PyInstaller cache
@@ -60,7 +60,7 @@ def build_executable():
         '--noconfirm',  # Replace output directory without asking
         '--paths=.',  # Add current directory to Python path
         '--additional-hooks-dir=.',  # Look for hooks in current directory
-        '--collect-submodules=rules_engine',  # Include all submodules
+        '--collect-submodules=rulectl',  # Include all submodules
         '--runtime-hook=suppress_warnings.py',  # Add warning suppression
         '--add-data=baml_client:baml_client',  # Include pre-generated BAML client
         '--add-data=config:config',  # Include configuration files (model pricing, etc.)
@@ -70,7 +70,7 @@ def build_executable():
     if platform.system() == "Darwin":  # macOS
         args.extend([
             '--codesign-identity=',  # Skip code signing
-            '--osx-bundle-identifier=dev.rules-engine.cli'  # Add bundle identifier
+            '--osx-bundle-identifier=dev.rulectl.cli'  # Add bundle identifier
         ])
 
     print("🔨 Building executable...")
