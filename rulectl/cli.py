@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Main CLI module for the Rules Engine tool.
+Main CLI module for the Rulectl tool.
 """
 
 import click
@@ -22,7 +22,7 @@ def get_openai_api_key() -> Optional[str]:
         return key
         
     # Try fallback file
-    fallback_file = Path.home() / ".rules_engine" / "credentials.json"
+    fallback_file = Path.home() / ".rulectl" / "credentials.json"
     if fallback_file.exists():
         try:
             with open(fallback_file) as f:
@@ -41,7 +41,7 @@ def get_anthropic_api_key() -> Optional[str]:
         return key
         
     # Try fallback file
-    fallback_file = Path.home() / ".rules_engine" / "credentials.json"
+    fallback_file = Path.home() / ".rulectl" / "credentials.json"
     if fallback_file.exists():
         try:
             with open(fallback_file) as f:
@@ -63,7 +63,7 @@ def store_openai_api_key(key: str) -> None:
 def _store_api_key(key_name: str, key: str) -> None:
     """Store API key in fallback file."""
     # Create directory with restricted permissions
-    fallback_dir = Path.home() / ".rules_engine"
+    fallback_dir = Path.home() / ".rulectl"
     fallback_file = fallback_dir / "credentials.json"
     
     # Create directory with restricted permissions
@@ -131,7 +131,7 @@ def ensure_api_keys() -> dict:
 
 @click.group()
 def cli():
-    """Rules Engine CLI - Manage cursor rules in your repository."""
+    """Rulectl - Manage cursor rules in your repository."""
     pass
 
 @cli.group()
@@ -183,7 +183,7 @@ def show_config():
         click.echo("🔑 OpenAI API Key: Not set")
     
     # Show storage location
-    creds_file = Path.home() / ".rules_engine" / "credentials.json"
+    creds_file = Path.home() / ".rulectl" / "credentials.json"
     click.echo(f"\n📁 Credentials stored in: {creds_file}")
 
 @config.command("clear")
@@ -204,7 +204,7 @@ def clear_key(provider: str, force: bool):
                 return
     
     # Clear the key(s)
-    creds_file = Path.home() / ".rules_engine" / "credentials.json"
+    creds_file = Path.home() / ".rulectl" / "credentials.json"
     if creds_file.exists():
         try:
             with open(creds_file) as f:
@@ -234,7 +234,7 @@ def clear_key(provider: str, force: bool):
 @click.option("--force", "-f", is_flag=True, help="Skip confirmation prompts")
 @click.argument("directory", type=click.Path(exists=True, file_okay=False, dir_okay=True), default=".")
 def start(verbose: bool, force: bool, directory: str):
-    """Start the Rules Engine service.
+    """Start the Rulectl service.
     
     DIRECTORY: Path to the repository to analyze (default: current directory)
     """
@@ -255,7 +255,7 @@ async def async_start(verbose: bool, force: bool, directory: str):
     
     # Import non-BAML dependent modules first
     try:
-        from rules_engine.utils import validate_repository, check_baml_client
+        from rulectl.utils import validate_repository, check_baml_client
     except ImportError:
         try:
             from .utils import validate_repository, check_baml_client
@@ -264,7 +264,7 @@ async def async_start(verbose: bool, force: bool, directory: str):
             parent_dir = os.path.dirname(current_dir)
             if parent_dir not in sys.path:
                 sys.path.insert(0, parent_dir)
-            from rules_engine.utils import validate_repository, check_baml_client
+            from rulectl.utils import validate_repository, check_baml_client
 
     # Check if we're in a git repo
     if not validate_repository(directory):
@@ -325,7 +325,7 @@ async def async_start(verbose: bool, force: bool, directory: str):
     
     # Now that BAML is initialized, import BAML-dependent modules
     try:
-        from rules_engine.analyzer import RepoAnalyzer, MAX_ANALYZABLE_LINES
+        from rulectl.analyzer import RepoAnalyzer, MAX_ANALYZABLE_LINES
     except ImportError:
         try:
             from .analyzer import RepoAnalyzer, MAX_ANALYZABLE_LINES
@@ -334,7 +334,7 @@ async def async_start(verbose: bool, force: bool, directory: str):
             parent_dir = os.path.dirname(current_dir)
             if parent_dir not in sys.path:
                 sys.path.insert(0, parent_dir)
-            from rules_engine.analyzer import RepoAnalyzer, MAX_ANALYZABLE_LINES
+            from rulectl.analyzer import RepoAnalyzer, MAX_ANALYZABLE_LINES
 
     # Initialize analyzer with the specified directory
     analyzer = RepoAnalyzer(directory)
@@ -433,7 +433,7 @@ async def async_start(verbose: bool, force: bool, directory: str):
     
     # Check for rules directory
     rules_dir = Path(directory) / ".cursor" / "rules"
-    analysis_dir = Path(directory) / ".rules_engine"
+    analysis_dir = Path(directory) / ".rulectl"
     analysis_file = analysis_dir / "analysis.json"
     
     # Create directories if they don't exist

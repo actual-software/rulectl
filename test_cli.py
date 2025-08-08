@@ -27,16 +27,16 @@ def run_command(cmd, description=""):
 
 def test_cli():
     """Test basic CLI functionality."""
-    print("🧪 Testing Rules Engine CLI")
+    print("🧪 Testing Rulectl CLI")
     print("=" * 40)
     
     # Test help command
-    success = run_command(["python", "-m", "rules_engine.cli", "--help"], "Help command")
+    success = run_command(["python", "-m", "rulectl.cli", "--help"], "Help command")
     if not success:
         return False
     
     # Test version
-    success = run_command(["python", "-m", "rules_engine.cli", "--version"], "Version command")
+    success = run_command(["python", "-m", "rulectl.cli", "--version"], "Version command")
     if not success:
         return False
     
@@ -47,7 +47,7 @@ def test_cli():
         # Create a simple git repo indicator
         Path(".git").mkdir()
         
-        success = run_command(["python", "-m", "rules_engine.cli", "init"], "Init command")
+        success = run_command(["python", "-m", "rulectl.cli", "init"], "Init command")
         if not success:
             return False
         
@@ -60,17 +60,17 @@ def test_cli():
             return False
         
         # Test analyze command
-        success = run_command(["python", "-m", "rules_engine.cli", "analyze"], "Analyze command")
+        success = run_command(["python", "-m", "rulectl.cli", "analyze"], "Analyze command")
         if not success:
             return False
         
         # Test validate command
-        success = run_command(["python", "-m", "rules_engine.cli", "validate"], "Validate command")
+        success = run_command(["python", "-m", "rulectl.cli", "validate"], "Validate command")
         if not success:
             return False
         
         # Test create command with basic template
-        success = run_command(["python", "-m", "rules_engine.cli", "create", "--template", "basic"], "Create command")
+        success = run_command(["python", "-m", "rulectl.cli", "create", "--template", "basic"], "Create command")
         if not success:
             return False
             
@@ -82,7 +82,7 @@ def test_cli():
             
             # Test analyzing the other directory from current directory
             success = run_command(
-                ["python", "-m", "rules_engine.cli", "start", "--force", other_dir],
+                ["python", "-m", "rulectl.cli", "start", "--force", other_dir],
                 "Start command with directory argument"
             )
             if not success:
@@ -90,7 +90,7 @@ def test_cli():
                 
             # Verify files were created in the target directory
             other_rules_dir = Path(other_dir) / ".cursor" / "rules"
-            other_analysis = Path(other_dir) / ".rules_engine" / "analysis.json"
+            other_analysis = Path(other_dir) / ".rulectl" / "analysis.json"
             
             if other_rules_dir.exists() and other_rules_dir.is_dir() and other_analysis.exists():
                 print("✅ Files created in target directory successfully")

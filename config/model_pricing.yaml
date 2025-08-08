@@ -1,8 +1,8 @@
 # =============================================================================
-# MODEL PRICING CONFIGURATION for Rules Engine Token Tracking
+# MODEL PRICING CONFIGURATION for Rulectl Token Tracking
 # =============================================================================
 #
-# This file configures cost estimation for AI model usage in the Rules Engine.
+# This file configures cost estimation for AI model usage in Rulectl.
 # The TokenTracker class automatically loads this configuration to calculate
 # real-time token costs during code analysis operations.
 #
