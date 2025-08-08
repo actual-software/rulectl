@@ -1,6 +1,8 @@
-# Rulectl
+# rulectl
 
-A simple command-line tool for managing cursor rules in Git repositories.
+A simple command-line tool for managing AI generated rules in Git repositories.
+
+Bulid by [Actual Software](http://actual.ai)
 
 ## Features
 
@@ -142,9 +144,5 @@ The tool will:
 Note: The build process automatically runs BAML generation, so built executables don't need this step.
 
 The rules and analysis files will be created in the target repository under:
-- `.cursor/rules.mdc` - The rules file
-- `.rulectl/analysis.json` - Analysis results
-
-## Project Structure
-
-- `.cursor/rules.mdc`
+- The rules file: `.cursor/rules.mdc`, `Claude.md`
+- Analysis results: `.rulectl/analysis.json`
