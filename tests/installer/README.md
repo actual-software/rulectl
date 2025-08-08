@@ -127,12 +127,6 @@ Tests macOS-specific behaviors:
    - Clean, informative output
    - Error handling and recovery
 
-### Coverage Metrics
-- **Core Functionality**: ~90% coverage
-- **Error Scenarios**: ~30% coverage
-- **Platform Variations**: ~60% coverage
-- **Overall**: ~70% coverage
-
 ## Test Output
 
 Tests provide clear pass/fail indicators:
@@ -178,30 +172,9 @@ All tests passed!
    which rules-engine
    ```
 
-## CI/CD Integration
-
-These tests are designed for CI/CD pipelines:
-
-```yaml
-# Example GitHub Actions
-- name: Test Installer
-  run: |
-    cd tests/installer
-    make test
-```
-
 ## Known Limitations
 
 1. **macOS Testing**: Uses simulated environment, not real macOS
 2. **Network Dependencies**: Tests require internet for Python download
 3. **Build Time**: Full test takes ~5-10 minutes due to Python compilation
 4. **Architecture**: Currently tests on host architecture only
-
-## Future Improvements
-
-- [ ] Add Windows WSL testing
-- [ ] Test error recovery scenarios
-- [ ] Add upgrade/downgrade testing
-- [ ] Test offline installation
-- [ ] Add performance benchmarks
-- [ ] Cross-architecture testing (ARM/x86)
