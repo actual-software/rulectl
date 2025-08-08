@@ -1,0 +1,394 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'setup.py'
+
+jobs:
+  detect-version-change:
+    name: Detect Version Change
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.check.outputs.version_changed }}
+      new_version: ${{ steps.check.outputs.new_version }}
+      old_version: ${{ steps.check.outputs.old_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for version change
+        id: check
+        run: |
+          # Extract version from current commit
+          NEW_VERSION=$(grep -E "version\s*=\s*\"[0-9]+\.[0-9]+\.[0-9]+\"" setup.py | sed -E 's/.*version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
+          echo "New version: $NEW_VERSION"
+          
+          # Extract version from previous commit
+          OLD_VERSION=$(git show HEAD~1:setup.py 2>/dev/null | grep -E "version\s*=\s*\"[0-9]+\.[0-9]+\.[0-9]+\"" | sed -E 's/.*version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/' || echo "0.0.0")
+          echo "Old version: $OLD_VERSION"
+          
+          # Set outputs
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "old_version=$OLD_VERSION" >> $GITHUB_OUTPUT
+          
+          # Compare versions using Python
+          python3 -c "
+          from packaging import version
+          import sys
+          new = version.parse('$NEW_VERSION')
+          old = version.parse('$OLD_VERSION')
+          if new > old:
+              print('Version increased from {} to {}'.format(old, new))
+              sys.exit(0)
+          else:
+              print('Version did not increase (old: {}, new: {})'.format(old, new))
+              sys.exit(1)
+          " && echo "version_changed=true" >> $GITHUB_OUTPUT || echo "version_changed=false" >> $GITHUB_OUTPUT
+
+      - name: Version change summary
+        run: |
+          if [[ "${{ steps.check.outputs.version_changed }}" == "true" ]]; then
+            echo "✅ Version increased from ${{ steps.check.outputs.old_version }} to ${{ steps.check.outputs.new_version }}"
+            echo "Build and release will proceed."
+          else
+            echo "ℹ️ No version increase detected (current: ${{ steps.check.outputs.new_version }})"
+            echo "Build and release will be skipped."
+          fi
+
+  build-binaries:
+    name: Build ${{ matrix.os }} ${{ matrix.arch }}
+    needs: detect-version-change
+    if: needs.detect-version-change.outputs.version_changed == 'true'
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows x64
+          - os: windows
+            arch: x64
+            runner: windows-latest
+            binary_name: rulectl.exe
+            artifact_name: rulectl-windows-x64.exe
+            python_arch: x64
+          
+          # Windows ARM64 (using emulation on x64 runner for now)
+          - os: windows
+            arch: arm64
+            runner: windows-latest
+            binary_name: rulectl.exe
+            artifact_name: rulectl-windows-arm64.exe
+            python_arch: x64
+            use_emulation: true
+          
+          # macOS x64 (Intel)
+          - os: macos
+            arch: x64
+            runner: macos-13
+            binary_name: rulectl
+            artifact_name: rulectl-macos-x64
+            python_arch: x64
+          
+          # macOS ARM64 (Apple Silicon)
+          - os: macos
+            arch: arm64
+            runner: macos-14
+            binary_name: rulectl
+            artifact_name: rulectl-macos-arm64
+            python_arch: arm64
+          
+          # Linux x64
+          - os: linux
+            arch: x64
+            runner: ubuntu-latest
+            binary_name: rulectl
+            artifact_name: rulectl-linux-x64
+            python_arch: x64
+          
+          # Linux ARM64 (free runner available for public repos)
+          - os: linux
+            arch: arm64
+            runner: ubuntu-24.04-arm
+            binary_name: rulectl
+            artifact_name: rulectl-linux-arm64
+            python_arch: arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: ${{ matrix.python_arch }}
+
+      - name: Create virtual environment
+        run: |
+          python -m venv venv
+        shell: bash
+
+      - name: Activate venv and upgrade pip (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          venv\Scripts\activate
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade wheel setuptools
+        shell: cmd
+
+      - name: Activate venv and upgrade pip (Unix)
+        if: matrix.os != 'windows'
+        run: |
+          source venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade wheel setuptools
+        shell: bash
+
+      - name: Install dependencies (Windows)
+        if: matrix.os == 'windows'
+        env:
+          BAML_LOG: 'OFF'
+          RULES_ENGINE_BUILD: '1'
+        run: |
+          venv\Scripts\activate
+          python -m pip install --upgrade "typing_extensions>=4.8.0"
+          python -m pip install --upgrade "pydantic>=2.6.0"
+          python -m pip install -r requirements.txt
+        shell: cmd
+
+      - name: Install dependencies (Unix)
+        if: matrix.os != 'windows'
+        env:
+          BAML_LOG: 'OFF'
+          RULES_ENGINE_BUILD: '1'
+        run: |
+          source venv/bin/activate
+          python -m pip install --upgrade "typing_extensions>=4.8.0"
+          python -m pip install --upgrade "pydantic>=2.6.0"
+          python -m pip install -r requirements.txt
+        shell: bash
+
+      - name: Generate BAML client (Windows)
+        if: matrix.os == 'windows'
+        env:
+          BAML_LOG: 'OFF'
+          RULES_ENGINE_BUILD: '1'
+        run: |
+          venv\Scripts\activate
+          python baml_init.py
+        shell: cmd
+
+      - name: Generate BAML client (Unix)
+        if: matrix.os != 'windows'
+        env:
+          BAML_LOG: 'OFF'
+          RULES_ENGINE_BUILD: '1'
+        run: |
+          source venv/bin/activate
+          python baml_init.py
+        shell: bash
+
+      - name: Build executable (Windows)
+        if: matrix.os == 'windows'
+        env:
+          BAML_LOG: 'OFF'
+          RULES_ENGINE_BUILD: '1'
+        run: |
+          venv\Scripts\activate
+          python build.py
+        shell: cmd
+
+      - name: Build executable (Unix)
+        if: matrix.os != 'windows'
+        env:
+          BAML_LOG: 'OFF'
+          RULES_ENGINE_BUILD: '1'
+        run: |
+          source venv/bin/activate
+          python build.py
+        shell: bash
+
+      - name: Verify binary exists (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          if not exist "dist\${{ matrix.binary_name }}" (
+            echo Binary not found at dist\${{ matrix.binary_name }}
+            exit 1
+          )
+          dir dist\
+        shell: cmd
+
+      - name: Verify binary exists (Unix)
+        if: matrix.os != 'windows'
+        run: |
+          if [ ! -f "dist/${{ matrix.binary_name }}" ]; then
+            echo "Binary not found at dist/${{ matrix.binary_name }}"
+            exit 1
+          fi
+          ls -la dist/
+        shell: bash
+
+      - name: Test binary (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          echo "Testing binary with --help command..."
+          dist\${{ matrix.binary_name }} --help
+          if %ERRORLEVEL% NEQ 0 (
+            echo "Binary test failed!"
+            exit 1
+          )
+          echo "Binary test passed!"
+        shell: cmd
+
+      - name: Test binary (Unix)
+        if: matrix.os != 'windows'
+        run: |
+          echo "Setting executable permissions..."
+          chmod +x dist/${{ matrix.binary_name }}
+          echo "Testing binary with --help command..."
+          if dist/${{ matrix.binary_name }} --help; then
+            echo "Binary test passed!"
+          else
+            echo "Binary test failed!"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Rename binary for release
+        run: |
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            mv dist/${{ matrix.binary_name }} dist/${{ matrix.artifact_name }}
+          else
+            mv dist/${{ matrix.binary_name }} dist/${{ matrix.artifact_name }}
+          fi
+        shell: bash
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.os }}-${{ matrix.arch }}
+          path: dist/${{ matrix.artifact_name }}
+          retention-days: 1
+
+  create-release:
+    name: Create Release
+    needs: [detect-version-change, build-binaries]
+    if: needs.detect-version-change.outputs.version_changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: |
+          echo "Downloaded artifacts:"
+          find artifacts -type f -name "*" | sort
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          
+          # Move all binaries to release-assets directory
+          find artifacts -type f -name "rulectl*" -exec cp {} release-assets/ \;
+          
+          # List final assets
+          echo "Release assets:"
+          ls -la release-assets/
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION="${{ needs.detect-version-change.outputs.new_version }}"
+          OLD_VERSION="${{ needs.detect-version-change.outputs.old_version }}"
+          
+          # Create release notes
+          cat > release_notes.md << EOF
+          ## Rulectl v${VERSION}
+          
+          ### 📦 Downloads
+          
+          Select the appropriate binary for your platform:
+          
+          | Platform | Architecture | Download |
+          |----------|-------------|----------|
+          | Windows | x64 | \`rulectl-windows-x64.exe\` |
+          | Windows | ARM64 | \`rulectl-windows-arm64.exe\` |
+          | macOS | Intel (x64) | \`rulectl-macos-x64\` |
+          | macOS | Apple Silicon (ARM64) | \`rulectl-macos-arm64\` |
+          | Linux | x64 | \`rulectl-linux-x64\` |
+          | Linux | ARM64 | \`rulectl-linux-arm64\` |
+          
+          ### 🚀 Installation
+          
+          #### Quick Install (Unix/Linux/macOS)
+          \`\`\`bash
+          curl -sSL https://raw.githubusercontent.com/SprintReviewAI/rulectl/main/install.sh | bash
+          \`\`\`
+          
+          #### Manual Installation
+          1. Download the appropriate binary for your platform
+          2. Rename it to \`rulectl\` (or \`rulectl.exe\` on Windows)
+          3. Make it executable: \`chmod +x rulectl\` (Unix/Linux/macOS)
+          4. Move it to a directory in your PATH
+          
+          ### 📝 Changes
+          
+          EOF
+          
+          # Add commit messages since last version
+          if [ "$OLD_VERSION" != "0.0.0" ]; then
+            echo "Changes since v${OLD_VERSION}:" >> release_notes.md
+            echo "" >> release_notes.md
+            git log --pretty=format:"- %s" $(git rev-list -n 1 "v${OLD_VERSION}" 2>/dev/null || echo "HEAD~10")..HEAD >> release_notes.md || echo "- Initial release" >> release_notes.md
+          else
+            echo "- Initial release" >> release_notes.md
+          fi
+          
+          echo "" >> release_notes.md
+          echo "### 🔧 Requirements" >> release_notes.md
+          echo "- No Python installation required" >> release_notes.md
+          echo "- Binaries are self-contained with all dependencies bundled" >> release_notes.md
+          
+          # Output the release notes
+          cat release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.detect-version-change.outputs.new_version }}
+          name: Rulectl v${{ needs.detect-version-change.outputs.new_version }}
+          body_path: release_notes.md
+          draft: true
+          prerelease: false
+          files: |
+            release-assets/rulectl-windows-x64.exe
+            release-assets/rulectl-windows-arm64.exe
+            release-assets/rulectl-macos-x64
+            release-assets/rulectl-macos-arm64
+            release-assets/rulectl-linux-x64
+            release-assets/rulectl-linux-arm64
+          fail_on_unmatched_files: true
+          generate_release_notes: false
+
+      - name: Release summary
+        run: |
+          echo "✅ Release v${{ needs.detect-version-change.outputs.new_version }} created successfully!"
+          echo ""
+          echo "The release has been created as a DRAFT. To publish it:"
+          echo "1. Go to https://github.com/${{ github.repository }}/releases"
+          echo "2. Review the release notes and binaries"
+          echo "3. Click 'Edit' on the draft release"
+          echo "4. Click 'Publish release' when ready"
