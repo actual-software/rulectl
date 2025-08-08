@@ -37,7 +37,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO_URL="https://github.com/SprintReviewAI/rules_engine.git"
+REPO_URL="https://github.com/actual-software/rulectl.git"
 TEMP_DIR="/tmp/rules_engine_install_$$"
 TARGET_DIR="$HOME/.local/bin"
 BINARY_NAME="rules-engine"
@@ -467,8 +467,12 @@ fi
 
 # Clone repository
 log_info "Cloning repository to $TEMP_DIR..."
-if ! git clone "$REPO_URL" "$TEMP_DIR" --depth 1 --quiet; then
-    fail_fast "Failed to clone repository from $REPO_URL"
+# For now, clone the fix branch until it's merged to main
+if ! git clone "$REPO_URL" "$TEMP_DIR" --depth 1 --branch fix/install-script-python-requirements --quiet; then
+    # Fallback to main branch if fix branch doesn't exist
+    if ! git clone "$REPO_URL" "$TEMP_DIR" --depth 1 --quiet; then
+        fail_fast "Failed to clone repository from $REPO_URL"
+    fi
 fi
 log_success "Repository cloned successfully"
 
