@@ -188,18 +188,34 @@ if ! check_python_version; then
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             install_pyenv "$OS_TYPE"
+            
+            # After installing pyenv, ensure it's properly set up in current session
+            if [ -d "$HOME/.pyenv" ]; then
+                export PYENV_ROOT="$HOME/.pyenv"
+                export PATH="$PYENV_ROOT/bin:$PATH"
+                eval "$(pyenv init -)" 2>/dev/null || true
+            fi
         else
             fail_fast "Python 3.11+ is required. Please install it manually and try again."
         fi
     else
         log_info "pyenv is already installed"
         # Initialize pyenv for current session
-        eval "$(pyenv init -)"
+        if [ -d "$HOME/.pyenv" ]; then
+            export PYENV_ROOT="$HOME/.pyenv"
+            export PATH="$PYENV_ROOT/bin:$PATH"
+        fi
+        eval "$(pyenv init -)" 2>/dev/null || true
+    fi
+    
+    # Verify pyenv is available after setup
+    if ! command -v pyenv &> /dev/null; then
+        fail_fast "Failed to set up pyenv properly. Please install Python 3.11+ manually."
     fi
     
     # Get latest Python 3.x version available
     log_info "Checking available Python versions..."
-    LATEST_PYTHON=$(pyenv install --list | grep -E '^\s*3\.[0-9]+\.[0-9]+$' | grep -E '^\s*3\.(1[1-9]|[2-9][0-9])\.' | tail -1 | xargs)
+    LATEST_PYTHON=$(pyenv install --list 2>/dev/null | grep -E '^\s*3\.[0-9]+\.[0-9]+$' | grep -E '^\s*3\.(1[1-9]|[2-9][0-9])\.' | tail -1 | xargs)
     
     if [ -z "$LATEST_PYTHON" ]; then
         # Fallback to a known good version

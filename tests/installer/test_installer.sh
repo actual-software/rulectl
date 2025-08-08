@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -e
+# Don't exit on error immediately to see full test results
+set +e
 
 # Colors for output
 RED='\033[0;31m'
