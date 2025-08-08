@@ -2,7 +2,7 @@ services:
   test-linux:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.ubuntu22
     volumes:
       # Mount the repository root so the test can access install.sh
       - ../../:/repo:ro
