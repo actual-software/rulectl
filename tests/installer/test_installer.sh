@@ -202,13 +202,42 @@ log_test "Verifying rules-engine binary"
 assert_file_exists "$HOME/.local/bin/rules-engine" "Binary file"
 assert_executable "$HOME/.local/bin/rules-engine" "Binary executable"
 
-# Test 9: Test running the binary
+# Test 9: Test running the binary directly
 log_test "Testing rules-engine binary execution"
 if "$HOME/.local/bin/rules-engine" --help &> /dev/null; then
-    log_pass "rules-engine --help executed successfully"
+    log_pass "rules-engine --help executed successfully (direct path)"
 else
-    log_fail "rules-engine --help failed"
+    log_fail "rules-engine --help failed (direct path)"
 fi
+
+# Test 10: Test running the binary from PATH
+log_test "Testing rules-engine from PATH in different directory"
+# Change to a completely different directory
+cd /tmp || exit 1
+# Try running the command without full path
+if rules-engine --help &> /dev/null; then
+    log_pass "rules-engine accessible from PATH in /tmp"
+else
+    # PATH might not be updated, try adding it
+    export PATH="$HOME/.local/bin:$PATH"
+    if rules-engine --help &> /dev/null; then
+        log_pass "rules-engine accessible from PATH after adding to PATH"
+    else
+        log_fail "rules-engine not accessible from PATH even after export"
+    fi
+fi
+
+# Test 11: Verify help output contains expected text
+log_test "Verifying rules-engine help output"
+HELP_OUTPUT=$(PATH="$HOME/.local/bin:$PATH" rules-engine --help 2>&1 || true)
+if echo "$HELP_OUTPUT" | grep -q "Usage:"; then
+    log_pass "rules-engine help output contains 'Usage:'"
+else
+    log_fail "rules-engine help output doesn't contain expected text"
+    log_info "Output was: $HELP_OUTPUT"
+fi
+
+cd - > /dev/null
 
 # Test 10: Check Python packages were installed
 log_test "Checking Python packages"

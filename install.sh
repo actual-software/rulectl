@@ -280,11 +280,12 @@ if ! check_python_version; then
     # Check if pyenv is already installed
     if ! command -v pyenv &> /dev/null; then
         if [ -t 0 ]; then
-            # Interactive mode
+            # Interactive mode - wait for user input
             read -p "Would you like to install pyenv to manage Python versions? (y/n): " -n 1 -r
             echo
         else
-            # Non-interactive mode - read full line
+            # Non-interactive mode - read from piped/redirected input
+            log_info "Running in non-interactive mode, reading from input stream"
             echo -n "Would you like to install pyenv to manage Python versions? (y/n): "
             read REPLY
         fi
@@ -338,11 +339,12 @@ if ! check_python_version; then
     fi
     
     if [ -t 0 ]; then
-        # Interactive mode
+        # Interactive mode - wait for user input
         read -p "Would you like to install Python $LATEST_PYTHON? (y/n): " -n 1 -r
         echo
     else
-        # Non-interactive mode - read full line
+        # Non-interactive mode - read from piped/redirected input
+        log_info "Running in non-interactive mode, reading from input stream"
         echo -n "Would you like to install Python $LATEST_PYTHON? (y/n): "
         read REPLY
     fi
@@ -351,11 +353,12 @@ if ! check_python_version; then
         if ! command -v gcc &> /dev/null && ! command -v clang &> /dev/null; then
             log_info "C compiler not found. Installing build dependencies..."
             if [ -t 0 ]; then
-                # Interactive mode
+                # Interactive mode - wait for user input
                 read -p "Would you like to install Python build dependencies? (y/n): " -n 1 -r
                 echo
             else
-                # Non-interactive mode - read full line
+                # Non-interactive mode - read from piped/redirected input
+                log_info "Running in non-interactive mode, reading from input stream"
                 echo -n "Would you like to install Python build dependencies? (y/n): "
                 read REPLY
             fi
