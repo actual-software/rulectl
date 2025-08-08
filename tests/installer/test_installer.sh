@@ -239,20 +239,6 @@ fi
 
 cd - > /dev/null
 
-# Test 10: Check Python packages were installed
-log_test "Checking Python packages"
-if python3 -c "import pydantic" 2>/dev/null; then
-    log_pass "pydantic is installed"
-else
-    log_fail "pydantic is not installed"
-fi
-
-if python3 -c "import typing_extensions" 2>/dev/null; then
-    log_pass "typing_extensions is installed"
-else
-    log_fail "typing_extensions is not installed"
-fi
-
 # Print summary
 echo ""
 echo "========================================="

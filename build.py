@@ -117,12 +117,12 @@ def build_executable():
     exe_path = dist_dir / exe_name
     
     if exe_path.exists():
-        print(f"\n✅ Build successful! Executable created at: {exe_path}")
+        print(f"\n✅ Build successful! Executable created at: {exe_path.absolute()}")
         print("\nTo run the executable:")
         if platform.system() == "Windows":
-            print(f"  {exe_path}")
+            print(f"  {exe_path.absolute()}")
         else:
-            print(f"  ./{exe_path}")
+            print(f"  {exe_path.absolute()}")
             
         # Make the file executable on Unix systems
         if platform.system() != "Windows":
@@ -192,7 +192,7 @@ def main():
     if success:
         print("\n📦 Build process complete!")
         print("\nTo distribute the executable:")
-        print("1. Copy the executable from the 'dist' directory")
+        print(f"1. Copy the executable from {Path('dist').absolute()}")
         print("2. The executable is self-contained and can run directly")
         print("3. No Python installation required on the target machine")
     else:
