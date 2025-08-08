@@ -61,20 +61,173 @@ log_info "Starting Rules Engine installation..."
 
 # Check for required commands
 log_info "Checking dependencies..."
-check_command "python3"
 check_command "git"
-check_command "pip3"
 
-# Verify Python version (3.11+)
-python_version=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-if ! python3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)"; then
-    fail_fast "Python 3.11+ is required, but found Python $python_version"
+# Function to detect OS
+detect_os() {
+    case "$(uname -s)" in
+        Darwin*)    echo "macos" ;;
+        Linux*)     echo "linux" ;;
+        CYGWIN*|MINGW*|MSYS*) echo "windows" ;;
+        *)          echo "unknown" ;;
+    esac
+}
+
+# Function to install pyenv
+install_pyenv() {
+    local os_type="$1"
+    
+    log_info "Installing pyenv..."
+    
+    case "$os_type" in
+        macos)
+            # Check if Homebrew is installed
+            if ! command -v brew &> /dev/null; then
+                log_info "Homebrew not found. Installing Homebrew..."
+                /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || fail_fast "Failed to install Homebrew"
+                
+                # Add Homebrew to PATH for current session
+                if [[ -f "/opt/homebrew/bin/brew" ]]; then
+                    eval "$(/opt/homebrew/bin/brew shellenv)"
+                elif [[ -f "/usr/local/bin/brew" ]]; then
+                    eval "$(/usr/local/bin/brew shellenv)"
+                fi
+            fi
+            
+            # Install pyenv via Homebrew
+            brew install pyenv || fail_fast "Failed to install pyenv via Homebrew"
+            ;;
+            
+        linux)
+            # Install pyenv via git clone
+            log_info "Installing pyenv via git..."
+            git clone https://github.com/pyenv/pyenv.git ~/.pyenv 2>/dev/null || {
+                cd ~/.pyenv && git pull
+            }
+            
+            # Add pyenv to PATH for current session
+            export PYENV_ROOT="$HOME/.pyenv"
+            export PATH="$PYENV_ROOT/bin:$PATH"
+            ;;
+            
+        windows)
+            # Install pyenv-win via git
+            log_info "Installing pyenv-win..."
+            git clone https://github.com/pyenv-win/pyenv-win.git "$HOME/.pyenv" 2>/dev/null || {
+                cd "$HOME/.pyenv" && git pull
+            }
+            
+            # Add pyenv to PATH for current session
+            export PYENV_ROOT="$HOME/.pyenv/pyenv-win"
+            export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
+            ;;
+            
+        *)
+            fail_fast "Unsupported operating system"
+            ;;
+    esac
+    
+    # Initialize pyenv for current session
+    if command -v pyenv &> /dev/null; then
+        eval "$(pyenv init -)"
+    fi
+    
+    log_success "pyenv installed successfully"
+}
+
+# Function to install Python via pyenv
+install_python_with_pyenv() {
+    local python_version="$1"
+    
+    log_info "Installing Python $python_version via pyenv..."
+    
+    # Install Python
+    pyenv install -s "$python_version" || fail_fast "Failed to install Python $python_version"
+    
+    # Set as global version
+    pyenv global "$python_version"
+    
+    # Rehash pyenv shims
+    pyenv rehash
+    
+    # Verify installation
+    if command -v python3 &> /dev/null; then
+        local installed_version=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')")
+        log_success "Python $installed_version installed and set as global"
+    else
+        fail_fast "Python installation verification failed"
+    fi
+}
+
+# Check Python version
+check_python_version() {
+    if command -v python3 &> /dev/null; then
+        if python3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)" 2>/dev/null; then
+            local python_version=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+            log_success "Python $python_version detected"
+            return 0
+        else
+            local python_version=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null || echo "unknown")
+            log_warning "Python $python_version found, but 3.11+ is required"
+            return 1
+        fi
+    else
+        log_warning "Python3 not found"
+        return 1
+    fi
+}
+
+# Main Python setup logic
+if ! check_python_version; then
+    OS_TYPE=$(detect_os)
+    log_info "Python 3.11+ not found. Setting up Python environment..."
+    
+    # Check if pyenv is already installed
+    if ! command -v pyenv &> /dev/null; then
+        read -p "Would you like to install pyenv to manage Python versions? (y/n): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            install_pyenv "$OS_TYPE"
+        else
+            fail_fast "Python 3.11+ is required. Please install it manually and try again."
+        fi
+    else
+        log_info "pyenv is already installed"
+        # Initialize pyenv for current session
+        eval "$(pyenv init -)"
+    fi
+    
+    # Get latest Python 3.x version available
+    log_info "Checking available Python versions..."
+    LATEST_PYTHON=$(pyenv install --list | grep -E '^\s*3\.[0-9]+\.[0-9]+$' | grep -E '^\s*3\.(1[1-9]|[2-9][0-9])\.' | tail -1 | xargs)
+    
+    if [ -z "$LATEST_PYTHON" ]; then
+        # Fallback to a known good version
+        LATEST_PYTHON="3.12.0"
+    fi
+    
+    read -p "Would you like to install Python $LATEST_PYTHON? (y/n): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        install_python_with_pyenv "$LATEST_PYTHON"
+        
+        # Re-initialize pyenv to ensure shims are loaded
+        eval "$(pyenv init -)"
+        
+        # Final verification
+        if ! check_python_version; then
+            fail_fast "Failed to set up Python 3.11+ environment"
+        fi
+    else
+        fail_fast "Python 3.11+ is required. Please install it manually and try again."
+    fi
 fi
-log_success "Python $python_version detected"
 
-# Check git version
-git_version=$(git --version | cut -d' ' -f3)
-log_success "Git $git_version detected"
+# Check for pip3
+if ! command -v pip3 &> /dev/null; then
+    log_info "pip3 not found, using python3 -m pip instead"
+    alias pip3="python3 -m pip"
+fi
 
 # Create target directory if it doesn't exist
 if [ ! -d "$TARGET_DIR" ]; then
