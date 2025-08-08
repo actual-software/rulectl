@@ -103,11 +103,17 @@ install_pyenv() {
             log_info "Installing pyenv via git..."
             git clone https://github.com/pyenv/pyenv.git ~/.pyenv 2>/dev/null || {
                 cd ~/.pyenv && git pull
+                cd - > /dev/null
             }
             
             # Add pyenv to PATH for current session
             export PYENV_ROOT="$HOME/.pyenv"
             export PATH="$PYENV_ROOT/bin:$PATH"
+            
+            # The python-build plugin is included with pyenv, verify it exists
+            if [ ! -d "$HOME/.pyenv/plugins/python-build" ]; then
+                log_warning "python-build plugin not found in pyenv installation"
+            fi
             ;;
             
         windows)
@@ -215,10 +221,23 @@ if ! check_python_version; then
     
     # Get latest Python 3.x version available
     log_info "Checking available Python versions..."
-    LATEST_PYTHON=$(pyenv install --list 2>/dev/null | grep -E '^\s*3\.[0-9]+\.[0-9]+$' | grep -E '^\s*3\.(1[1-9]|[2-9][0-9])\.' | tail -1 | xargs)
+    
+    # Try to get the list of available versions
+    # Note: pyenv install --list may fail on some systems without proper setup
+    PYTHON_VERSIONS=""
+    if command -v pyenv &> /dev/null; then
+        PYTHON_VERSIONS=$(pyenv install --list 2>/dev/null | grep -E '^\s*3\.[0-9]+\.[0-9]+$' || echo "")
+    fi
+    
+    if [ -n "$PYTHON_VERSIONS" ]; then
+        # Filter for 3.11+ versions and get the latest
+        LATEST_PYTHON=$(echo "$PYTHON_VERSIONS" | grep -E '^\s*3\.(1[1-9]|[2-9][0-9])\.' | tail -1 | xargs)
+        log_info "Found latest Python version: $LATEST_PYTHON"
+    fi
     
     if [ -z "$LATEST_PYTHON" ]; then
-        # Fallback to a known good version
+        # If we can't get versions from pyenv, use a known good fallback
+        log_info "Using fallback Python version (pyenv may need additional setup)"
         LATEST_PYTHON="3.12.0"
     fi
     
