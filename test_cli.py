@@ -27,7 +27,7 @@ def run_command(cmd, description=""):
 
 def test_cli():
     """Test basic CLI functionality."""
-    print("🧪 Testing Rules Engine CLI")
+    print("🧪 Testing Rulectl CLI")
     print("=" * 40)
     
     # Test help command

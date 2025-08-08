@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Repository analyzer module for the Rules Engine.
+Repository analyzer module for Rulectl.
 This module handles the intelligent analysis of repositories to generate Cursor rules.
 """
 

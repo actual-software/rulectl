@@ -1,5 +1,5 @@
 """
-Utility functions for the Rules Engine.
+Utility functions for Rulectl.
 """
 
 from pathlib import Path

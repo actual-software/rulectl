@@ -1,7 +1,7 @@
 """
 Token tracking utilities for AI model usage monitoring and cost estimation.
 
-This module provides comprehensive token tracking for AI model usage in the Rules Engine.
+This module provides comprehensive token tracking for AI model usage in Rulectl.
 It integrates with BAML's built-in Collector for accurate token counting when available,
 and provides intelligent fallback estimation when collector data is unavailable.
 """
@@ -13,7 +13,7 @@ import yaml
 class TokenTracker:
     """Track token usage and costs with real-time monitoring and cost estimation.
     
-    This class provides comprehensive token tracking for AI model usage in the Rules Engine.
+    This class provides comprehensive token tracking for AI model usage in Rulectl.
     It integrates with BAML's built-in Collector for accurate token counting when available,
     and provides intelligent fallback estimation when collector data is unavailable.
     

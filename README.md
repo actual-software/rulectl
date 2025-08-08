@@ -1,4 +1,4 @@
-# Rules Engine CLI
+# Rulectl
 
 A simple command-line tool for managing cursor rules in Git repositories.
 

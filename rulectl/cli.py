@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Main CLI module for the Rules Engine tool.
+Main CLI module for the Rulectl tool.
 """
 
 import click
@@ -131,7 +131,7 @@ def ensure_api_keys() -> dict:
 
 @click.group()
 def cli():
-    """Rules Engine CLI - Manage cursor rules in your repository."""
+    """Rulectl - Manage cursor rules in your repository."""
     pass
 
 @cli.group()
@@ -234,7 +234,7 @@ def clear_key(provider: str, force: bool):
 @click.option("--force", "-f", is_flag=True, help="Skip confirmation prompts")
 @click.argument("directory", type=click.Path(exists=True, file_okay=False, dir_okay=True), default=".")
 def start(verbose: bool, force: bool, directory: str):
-    """Start the Rules Engine service.
+    """Start the Rulectl service.
     
     DIRECTORY: Path to the repository to analyze (default: current directory)
     """
