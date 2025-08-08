@@ -191,10 +191,12 @@ def main():
     
     if success:
         print("\n📦 Build process complete!")
-        print("\nTo distribute the executable:")
-        print(f"1. Copy the executable from {Path('dist').absolute()}")
-        print("2. The executable is self-contained and can run directly")
-        print("3. No Python installation required on the target machine")
+        # Only show distribution instructions if not running from installer
+        if not os.environ.get('RULES_ENGINE_INSTALLER'):
+            print("\nTo distribute the executable:")
+            print(f"1. Copy the executable from {Path('dist').absolute()}")
+            print("2. The executable is self-contained and can run directly")
+            print("3. No Python installation required on the target machine")
     else:
         print("\n💥 Build process failed!")
         exit(1)

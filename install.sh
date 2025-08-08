@@ -491,9 +491,10 @@ log_info "Activating virtual environment..."
 source venv/bin/activate || fail_fast "Failed to activate virtual environment"
 log_success "Virtual environment activated"
 
-# Set environment variable for build
+# Set environment variables for build
 export BAML_LOG=OFF
 export RULES_ENGINE_BUILD=1
+export RULES_ENGINE_INSTALLER=1  # Indicates running from installer
 
 # Upgrade pip to avoid issues
 log_info "Upgrading pip..."
