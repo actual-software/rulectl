@@ -1,8 +1,0 @@
-# Use the actual macOS Docker image
-FROM dockur/macos:latest
-
-# Copy test script
-COPY test_installer_macos.sh /home/test_installer.sh
-RUN chmod +x /home/test_installer.sh
-
-ENTRYPOINT ["/home/test_installer.sh"]

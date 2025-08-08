@@ -9,7 +9,7 @@ The test suite uses Docker containers to create clean, reproducible environments
 ### Key Features Tested
 
 1. **Automatic Python Management** - Installing Python 3.11+ via pyenv when not available
-2. **Cross-Platform Support** - Testing on Ubuntu Linux and simulated macOS environments
+2. **Linux Support** - Testing on Ubuntu Linux environments
 3. **PATH Configuration** - Automatic PATH setup in shell profiles
 4. **Non-Interactive Mode** - Support for `--yes` flag for CI/CD pipelines
 5. **Clean Build Output** - Suppressed verbose PyInstaller logs for better UX
@@ -22,12 +22,6 @@ The test suite uses Docker containers to create clean, reproducible environments
 - Verifies all build dependencies installation
 - Tests PATH configuration in .bashrc and .profile
 
-### macOS Simulation (`Dockerfile.macos`)
-- Simulates macOS environment for testing installer's OS detection
-- Tests the Linux installation path (used when Homebrew is unavailable)
-- Verifies pyenv installation via git clone method
-- Tests cross-platform compatibility
-
 ## Prerequisites
 
 - Docker
@@ -39,14 +33,11 @@ The test suite uses Docker containers to create clean, reproducible environments
 ### Quick Start
 
 ```bash
-# Run all tests (Linux and macOS)
+# Run all tests
 make test
 
-# Run only Linux tests
+# Run Linux tests
 make test-linux
-
-# Run only macOS tests
-make test-macos
 ```
 
 ### Using Docker Compose
@@ -55,9 +46,8 @@ make test-macos
 # Build test containers
 docker-compose build
 
-# Run specific test
+# Run test
 docker-compose run --rm test-linux
-docker-compose run --rm test-macos
 
 # Clean up
 docker-compose down --volumes
@@ -71,7 +61,6 @@ docker-compose build --no-cache test-linux
 
 # Open shell for debugging
 make shell           # Linux container
-make shell-macos    # macOS container
 
 # View logs
 make logs
@@ -82,21 +71,13 @@ make clean
 
 ## Test Scripts
 
-### `test_installer.sh` (Linux)
+### `test_installer_linux.sh`
 Tests the complete installation flow on Ubuntu:
 - Prerequisites verification (curl, git)
 - Python 3.11+ installation via pyenv
 - Build dependencies installation
 - Binary compilation and installation
 - PATH verification from multiple directories
-- Non-interactive mode with piped responses
-
-### `test_installer_macos.sh` (macOS)
-Tests macOS-specific behaviors:
-- OS detection (Darwin)
-- Homebrew interaction (mocked in simulation)
-- pyenv installation for macOS
-- Binary installation and PATH setup
 - Non-interactive mode with `--yes` flag
 
 ## Test Coverage
@@ -104,7 +85,7 @@ Tests macOS-specific behaviors:
 ### ✅ What We Test
 
 1. **Environment Detection**
-   - OS type (Linux/macOS)
+   - OS type (Linux)
    - Python version detection
    - Existing pyenv installation
 
@@ -147,13 +128,13 @@ All tests passed!
 
 ## Adding New Tests
 
-1. **Add Test Cases**: Edit `test_installer.sh` or `test_installer_macos.sh`
+1. **Add Test Cases**: Edit `test_installer_linux.sh`
 2. **Add Assertions**: Use provided helper functions:
    - `assert_command_exists`
    - `assert_file_exists`
    - `assert_executable`
    - `assert_python_version`
-3. **Update Docker**: Modify Dockerfiles if new dependencies needed
+3. **Update Docker**: Modify Dockerfile.ubuntu22 if new dependencies needed
 4. **Test**: Run `make test` to verify
 
 ## Debugging Failed Tests
@@ -174,7 +155,7 @@ All tests passed!
 
 ## Known Limitations
 
-1. **macOS Testing**: Uses simulated environment, not real macOS
+1. **macOS Testing**: No Docker-based macOS testing (requires real Mac hardware or GitHub Actions)
 2. **Network Dependencies**: Tests require internet for Python download
 3. **Build Time**: Full test takes ~5-10 minutes due to Python compilation
 4. **Architecture**: Currently tests on host architecture only
