@@ -14,7 +14,7 @@ try:
         if os.path.exists(setup_path):
             with open(setup_path, "r") as f:
                 content = f.read()
-                match = re.search(r'version\s*=\s*["\']([^"\']+)["\']', content)
+                match = re.search(r'version\s*=\s*["\'](.*?)["\']', content)
                 if match:
                     __version__ = match.group(1)
                 else:
