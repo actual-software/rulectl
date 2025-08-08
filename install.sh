@@ -65,10 +65,10 @@ check_command "python3"
 check_command "git"
 check_command "pip3"
 
-# Verify Python version (3.6+)
+# Verify Python version (3.11+)
 python_version=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-if ! python3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 6) else 1)"; then
-    fail_fast "Python 3.6+ is required, but found Python $python_version"
+if ! python3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)"; then
+    fail_fast "Python 3.11+ is required, but found Python $python_version"
 fi
 log_success "Python $python_version detected"
 
