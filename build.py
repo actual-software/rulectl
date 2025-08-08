@@ -25,6 +25,9 @@ def clean_build_dirs():
 
 def build_executable():
     """Build the standalone executable."""
+    import subprocess
+    import logging
+    
     # Set environment variables for build
     os.environ["BAML_LOG"] = "OFF"
     os.environ["RULES_ENGINE_BUILD"] = "1"  # Indicate we're in build mode
@@ -37,6 +40,7 @@ def build_executable():
 
     # PyInstaller arguments
     args = [
+        sys.executable, '-m', 'PyInstaller',
         'rules_engine/cli.py',  # Your entry point
         '--name=%s' % exe_name,
         '--onefile',  # Create a single executable
@@ -64,6 +68,7 @@ def build_executable():
         '--runtime-hook=suppress_warnings.py',  # Add warning suppression
         '--add-data=baml_client:baml_client',  # Include pre-generated BAML client
         '--add-data=config:config',  # Include configuration files (model pricing, etc.)
+        '--log-level=WARN',  # Only show warnings and errors from PyInstaller
     ]
 
     # Add platform-specific options
@@ -73,8 +78,39 @@ def build_executable():
             '--osx-bundle-identifier=dev.rules-engine.cli'  # Add bundle identifier
         ])
 
-    print("🔨 Building executable...")
-    PyInstaller.__main__.run(args)
+    print("🔨 Building executable (this may take a minute)...")
+    
+    # Check if we should show debug output
+    debug_mode = os.environ.get('BUILD_DEBUG', '').lower() in ['1', 'true', 'yes']
+    
+    try:
+        if debug_mode:
+            print("📋 Debug mode enabled. Showing full PyInstaller output...")
+            result = subprocess.run(args, check=True)
+        else:
+            # Run PyInstaller and capture output
+            result = subprocess.run(args, check=True, capture_output=True, text=True)
+            
+            # Only show errors if they occur
+            if result.stderr and 'ERROR' in result.stderr:
+                print("⚠️  Build warnings/errors:")
+                for line in result.stderr.split('\n'):
+                    if 'ERROR' in line or 'WARNING' in line:
+                        print(f"  {line}")
+            
+            # Show a simple progress indicator
+            print("  📦 Packaging application...")
+            print("  🔗 Bundling dependencies...")
+            print("  ✨ Creating standalone executable...")
+    except subprocess.CalledProcessError as e:
+        print("❌ Build failed!")
+        if not debug_mode:
+            print("\nRun with BUILD_DEBUG=1 to see detailed output:")
+            print("  BUILD_DEBUG=1 python build.py")
+        if e.stderr:
+            print("\nError output:")
+            print(e.stderr)
+        return False
     
     # Get the path to the created executable
     dist_dir = Path("dist")
@@ -122,11 +158,14 @@ def run_baml_generation():
         print("⚠️  BAML generation not available. Please ensure baml_init.py is present.")
         return True  # Continue with build anyway
     
-    print("🔧 Running BAML generation...")
-    success = generate_baml(verbose=True)
-    if success:
-        print("✅ BAML generation completed")
+    debug_mode = os.environ.get('BUILD_DEBUG', '').lower() in ['1', 'true', 'yes']
+    if not debug_mode:
+        print("🔧 Generating BAML client...")
     else:
+        print("🔧 Running BAML generation...")
+    
+    success = generate_baml(verbose=True)
+    if not success:
         print("❌ BAML generation failed")
     return success
 

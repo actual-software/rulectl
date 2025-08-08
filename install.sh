@@ -431,11 +431,38 @@ if [ ! -d "$TARGET_DIR" ]; then
     mkdir -p "$TARGET_DIR" || fail_fast "Failed to create $TARGET_DIR directory"
 fi
 
-# Check if target directory is in PATH
-if [[ ":$PATH:" != *":$TARGET_DIR:"* ]]; then
-    log_warning "$TARGET_DIR is not in your PATH. You may need to add it to your shell profile:"
-    echo "  echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc"
-    echo "  echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.zshrc"
+# Check if target directory is in PATH and add it if not
+# Need to expand $HOME in TARGET_DIR for proper comparison
+EXPANDED_TARGET_DIR="${TARGET_DIR/#\$HOME/$HOME}"
+if [[ ":$PATH:" != *":$EXPANDED_TARGET_DIR:"* ]]; then
+    log_info "Adding $TARGET_DIR to PATH in shell profiles..."
+    
+    # Function to add PATH to a shell profile if it exists and doesn't already have it
+    add_to_profile() {
+        local profile="$1"
+        if [ -f "$profile" ]; then
+            # Check if the PATH export already exists
+            if ! grep -q "export PATH=\"\$HOME/.local/bin:\$PATH\"" "$profile" 2>/dev/null && \
+               ! grep -q "export PATH=.*\$HOME/.local/bin" "$profile" 2>/dev/null; then
+                echo '' >> "$profile"
+                echo '# Added by Rules Engine installer' >> "$profile"
+                echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$profile"
+                log_success "Added PATH to $profile"
+            else
+                log_info "PATH already configured in $profile"
+            fi
+        fi
+    }
+    
+    # Add to common shell profiles
+    add_to_profile "$HOME/.bashrc"
+    add_to_profile "$HOME/.bash_profile"
+    add_to_profile "$HOME/.zshrc"
+    add_to_profile "$HOME/.profile"
+    
+    # Also export for current session
+    export PATH="$EXPANDED_TARGET_DIR:$PATH"
+    log_info "PATH updated for current session"
 fi
 
 # Clone repository
@@ -526,15 +553,10 @@ log_success "Installation verification passed"
 log_success "Rules Engine installed successfully!"
 log_info "You can now run: $BINARY_NAME --help"
 
-# Check PATH and provide guidance if needed
-if [[ ":$PATH:" != *":$TARGET_DIR:"* ]]; then
-    echo ""
-    log_warning "Note: $TARGET_DIR is not in your PATH."
-    log_info "To use the command from anywhere, add this to your shell profile:"
-    echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
-    echo ""
-    log_info "Or run the binary directly: $TARGET_DIR/$BINARY_NAME"
-else
-    echo ""
-    log_info "Run '$BINARY_NAME --help' to get started!"
-fi
+# Final message
+echo ""
+log_info "Installation complete! PATH has been configured in your shell profiles."
+log_info "To use the command in a new terminal: $BINARY_NAME --help"
+log_info "To use in this session, run: source ~/.bashrc (or ~/.zshrc for zsh)"
+echo ""
+log_success "You can also run directly: $TARGET_DIR/$BINARY_NAME --help"

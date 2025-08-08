@@ -56,24 +56,40 @@ def generate_baml(verbose=True):
         bool: True if successful, False otherwise
     """
     try:
+        # Check for debug mode
+        debug_mode = os.environ.get('BUILD_DEBUG', '').lower() in ['1', 'true', 'yes']
+        
         # Find the baml-cli executable
         baml_cli_path = find_baml_cli()
-        if verbose:
+        if verbose and debug_mode:
             print(f"Found baml-cli at: {baml_cli_path}")
         
         # Run baml-cli generate
-        if verbose:
+        if verbose and debug_mode:
             print("Running baml-cli generate...")
-        result = subprocess.run(
-            [baml_cli_path, "generate"],
-            check=True
-        )
-        if verbose:
+            result = subprocess.run(
+                [baml_cli_path, "generate"],
+                check=True
+            )
+        else:
+            # Suppress output unless there's an error
+            result = subprocess.run(
+                [baml_cli_path, "generate"],
+                check=True,
+                capture_output=True,
+                text=True
+            )
+        
+        if verbose and not debug_mode:
+            print("  ✅ BAML client generated")
+        elif verbose:
             print("BAML initialization completed successfully!")
         return True
     except subprocess.CalledProcessError as e:
         if verbose:
             print(f"Error running baml-cli generate: {e}")
+            if hasattr(e, 'stderr') and e.stderr:
+                print(f"Error output: {e.stderr}")
         return False
     except Exception as e:
         if verbose:

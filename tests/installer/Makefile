@@ -1,22 +1,44 @@
-.PHONY: test clean build run shell
+.PHONY: test test-linux test-macos clean build run shell shell-macos
 
-# Default target
-test: clean build run
+# Default target - run all tests
+test: test-linux test-macos
 
-# Build the Docker image
-build:
+# Test Linux installation
+test-linux: build-linux run-linux
+
+# Test macOS installation (simulated)
+test-macos: build-macos run-macos
+
+# Build Docker images
+build: build-linux build-macos
+
+build-linux:
 	@echo "Building Docker image for Linux installer test..."
-	docker-compose build
+	docker-compose build test-linux
 
-# Run the test
-run:
-	@echo "Running installer test in Docker container..."
+build-macos:
+	@echo "Building Docker image for macOS installer test..."
+	docker-compose build test-macos
+
+# Run tests
+run: run-linux run-macos
+
+run-linux:
+	@echo "Running Linux installer test..."
 	docker-compose run --rm test-linux
 
-# Open a shell in the container for debugging
+run-macos:
+	@echo "Running macOS installer test (simulated)..."
+	docker-compose run --rm test-macos
+
+# Open shells for debugging
 shell:
-	@echo "Opening shell in test container..."
+	@echo "Opening shell in Linux test container..."
 	docker-compose run --rm --entrypoint /bin/bash test-linux
+
+shell-macos:
+	@echo "Opening shell in macOS test container..."
+	docker-compose run --rm --entrypoint /bin/bash test-macos
 
 # Clean up Docker resources
 clean:
@@ -28,5 +50,5 @@ clean:
 logs:
 	docker-compose logs -f
 
-# Rebuild and test
+# Rebuild and test everything
 rebuild: clean build run
