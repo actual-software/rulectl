@@ -2,8 +2,32 @@
 
 # Rules Engine One-Line Installation Script
 # Usage: curl -sSL https://raw.githubusercontent.com/SprintReviewAI/rules_engine/main/install.sh | bash
+# Usage with auto-yes: curl -sSL ... | bash -s -- --yes
 
 set -euo pipefail
+
+# Parse command line arguments
+AUTO_YES=false
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -y|--yes)
+            AUTO_YES=true
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [OPTIONS]"
+            echo "Options:"
+            echo "  -y, --yes    Automatically answer yes to all prompts"
+            echo "  -h, --help   Show this help message"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
 
 # Colors for output
 RED='\033[0;31m'
@@ -279,7 +303,11 @@ if ! check_python_version; then
     
     # Check if pyenv is already installed
     if ! command -v pyenv &> /dev/null; then
-        if [ -t 0 ]; then
+        if [ "$AUTO_YES" = true ]; then
+            # Auto-yes mode
+            log_info "Auto-installing pyenv (--yes flag provided)"
+            REPLY="y"
+        elif [ -t 0 ]; then
             # Interactive mode - wait for user input
             read -p "Would you like to install pyenv to manage Python versions? (y/n): " -n 1 -r
             echo
@@ -338,7 +366,11 @@ if ! check_python_version; then
         LATEST_PYTHON="3.12.0"
     fi
     
-    if [ -t 0 ]; then
+    if [ "$AUTO_YES" = true ]; then
+        # Auto-yes mode
+        log_info "Auto-installing Python $LATEST_PYTHON (--yes flag provided)"
+        REPLY="y"
+    elif [ -t 0 ]; then
         # Interactive mode - wait for user input
         read -p "Would you like to install Python $LATEST_PYTHON? (y/n): " -n 1 -r
         echo
@@ -352,7 +384,11 @@ if ! check_python_version; then
         # First, ensure build dependencies are installed
         if ! command -v gcc &> /dev/null && ! command -v clang &> /dev/null; then
             log_info "C compiler not found. Installing build dependencies..."
-            if [ -t 0 ]; then
+            if [ "$AUTO_YES" = true ]; then
+                # Auto-yes mode
+                log_info "Auto-installing build dependencies (--yes flag provided)"
+                REPLY="y"
+            elif [ -t 0 ]; then
                 # Interactive mode - wait for user input
                 read -p "Would you like to install Python build dependencies? (y/n): " -n 1 -r
                 echo
