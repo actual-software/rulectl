@@ -57,8 +57,8 @@ Windows users must build from source:
 
 For more control or if the one-line installer doesn't work:
 
-1. **Prerequisites:**
-   - Python 3.11 or higher
+1. **Prerequisites (for manual installation only):**
+   - Python 3.11 or higher (Note: The automated installer above handles Python installation for you)
    - Git
    - C compiler (for building Python packages)
 
