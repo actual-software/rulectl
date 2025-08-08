@@ -98,9 +98,6 @@ assert_executable() {
 
 # Main test execution
 log_info "Starting installation test for Linux environment"
-log_info "User: $(whoami)"
-log_info "Home: $HOME"
-log_info "PWD: $(pwd)"
 
 # Test 1: Check initial environment
 log_test "Checking initial environment"

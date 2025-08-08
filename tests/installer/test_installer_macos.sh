@@ -30,9 +30,6 @@ log_info() {
 
 # Main test execution
 log_info "Starting E2E installation test (Linux path, used when Homebrew unavailable)"
-log_info "User: $(whoami)"
-log_info "Home: $HOME"
-log_info "PWD: $(pwd)"
 
 # Test 1: Check initial Python state
 log_test "Checking initial Python state"
