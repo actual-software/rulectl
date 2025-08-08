@@ -36,7 +36,7 @@ USER testuser
 WORKDIR /home/testuser
 
 # Copy the test script
-COPY --chown=testuser:testuser test_installer.sh /home/testuser/
+COPY --chown=testuser:testuser test_installer_linux.sh /home/testuser/test_installer.sh
 RUN chmod +x /home/testuser/test_installer.sh
 
 # Set the entrypoint to run the test
