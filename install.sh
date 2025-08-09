@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Rulectl One-Line Installation Script
-# Usage: curl -sSL https://raw.githubusercontent.com/SprintReviewAI/rulectl/main/install.sh | bash
+# Usage: curl -sSL https://raw.githubusercontent.com/actual-software/rulectl/main/install.sh | bash
 
 set -euo pipefail
 
@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO_URL="https://github.com/SprintReviewAI/rulectl.git"
+REPO_URL="https://github.com/actual-software/rulectl.git"
 TEMP_DIR="/tmp/rulectl_install_$$"
 TARGET_DIR="$HOME/.local/bin"
 BINARY_NAME="rulectl"
