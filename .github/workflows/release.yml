@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'setup.py'
+      - 'version.py'
 
 jobs:
   detect-version-change:
@@ -24,11 +24,11 @@ jobs:
         id: check
         run: |
           # Extract version from current commit
-          NEW_VERSION=$(grep -E "version\s*=\s*\"[0-9]+\.[0-9]+\.[0-9]+\"" setup.py | sed -E 's/.*version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
+          NEW_VERSION=$(grep -E "VERSION\s*=\s*\"[0-9]+\.[0-9]+\.[0-9]+\"" version.py | sed -E 's/.*VERSION\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
           echo "New version: $NEW_VERSION"
           
           # Extract version from previous commit
-          OLD_VERSION=$(git show HEAD~1:setup.py 2>/dev/null | grep -E "version\s*=\s*\"[0-9]+\.[0-9]+\.[0-9]+\"" | sed -E 's/.*version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/' || echo "0.0.0")
+          OLD_VERSION=$(git show HEAD~1:version.py 2>/dev/null | grep -E "VERSION\s*=\s*\"[0-9]+\.[0-9]+\.[0-9]+\"" | sed -E 's/.*VERSION\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/' || echo "0.0.0")
           echo "Old version: $OLD_VERSION"
           
           # Set outputs

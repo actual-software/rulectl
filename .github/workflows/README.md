@@ -2,7 +2,7 @@
 
 ## Overview
 
-This workflow automatically builds and releases Rulectl binaries for 6 different platform/architecture combinations when the version is incremented in `setup.py`.
+This workflow automatically builds and releases Rulectl binaries for 6 different platform/architecture combinations when the version is incremented in `version.py`.
 
 ## Supported Platforms
 
@@ -20,7 +20,7 @@ This workflow automatically builds and releases Rulectl binaries for 6 different
 ### 1. Trigger
 The workflow triggers when:
 - A push is made to the `main` branch
-- The `setup.py` file is modified
+- The `version.py` file is modified
 - The version number has **increased** (not decreased or unchanged)
 
 ### 2. Version Detection
@@ -48,14 +48,14 @@ For each platform:
 
 ### Creating a Release
 
-1. **Update version** in `setup.py`:
+1. **Update version** in `version.py`:
    ```python
-   version="0.1.1",  # Increment from previous version
+   VERSION = "0.1.1"  # Increment from previous version
    ```
 
 2. **Commit and push** to main:
    ```bash
-   git add setup.py
+   git add version.py
    git commit -m "Bump version to 0.1.1"
    git push origin main
    ```
@@ -116,7 +116,7 @@ Examples:
 
 3. **Version Not Triggering Build**
    - Ensure version actually increased
-   - Check version format matches regex: `version="X.Y.Z"`
+   - Check version format matches regex: `VERSION="X.Y.Z"`
    - Verify push is to main branch
 
 ### Testing Locally
@@ -148,7 +148,7 @@ dist/rulectl --help
 ### Updating Python Version
 Edit `.github/workflows/release.yml`:
 ```yaml
-python-version: '3.12'  # Change from 3.11
+python-version: '3.11'  # Change from 3.11
 ```
 
 ### Adding New Platform
@@ -183,7 +183,8 @@ Add new entry to build matrix:
 ## Related Files
 
 - `.github/workflows/release.yml`: Main workflow file
-- `setup.py`: Version source
+- `version.py`: Version source (single source of truth)
+- `setup.py`: Uses version from version.py
 - `build.py`: PyInstaller configuration
 - `baml_init.py`: BAML generation script
 - `suppress_warnings.py`: Runtime warning suppression

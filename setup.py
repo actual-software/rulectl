@@ -5,6 +5,12 @@ Setup script for Rulectl CLI tool.
 
 from setuptools import setup, find_packages
 from pathlib import Path
+import sys
+import os
+
+# Add parent directory to path to import version
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from version import VERSION
 
 # Read the contents of README file
 this_directory = Path(__file__).parent
@@ -15,7 +21,7 @@ if readme_path.exists():
 
 setup(
     name="rulectl",
-    version="0.1.0",
+    version=VERSION,
     author="Rulectl Team",
     author_email="info@rulectl.com",
     description="A CLI tool for analyzing and creating cursor rules in repositories",

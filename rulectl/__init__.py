@@ -7,19 +7,15 @@ try:
     try:
         __version__ = version("rulectl")
     except PackageNotFoundError:
-        # Package is not installed, read from setup.py
+        # Package is not installed, read from version.py
         import os
-        import re
-        setup_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "setup.py")
-        if os.path.exists(setup_path):
-            with open(setup_path, "r") as f:
-                content = f.read()
-                match = re.search(r'version\s*=\s*["\'](.*?)["\']', content)
-                if match:
-                    __version__ = match.group(1)
-                else:
-                    __version__ = "0.0.0"  # Fallback version
-        else:
+        import sys
+        parent_dir = os.path.dirname(os.path.dirname(__file__))
+        sys.path.insert(0, parent_dir)
+        try:
+            from version import VERSION
+            __version__ = VERSION
+        except ImportError:
             __version__ = "0.0.0"  # Fallback version
 except ImportError:
     # Python < 3.8, use pkg_resources
@@ -27,6 +23,15 @@ except ImportError:
         import pkg_resources
         __version__ = pkg_resources.get_distribution("rulectl").version
     except Exception:
-        __version__ = "0.0.0"  # Fallback version
+        # Try to import from version.py as last resort
+        try:
+            import os
+            import sys
+            parent_dir = os.path.dirname(os.path.dirname(__file__))
+            sys.path.insert(0, parent_dir)
+            from version import VERSION
+            __version__ = VERSION
+        except ImportError:
+            __version__ = "0.0.0"  # Fallback version
 
 __author__ = "Rulectl Team & Contributors" 
