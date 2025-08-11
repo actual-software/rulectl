@@ -148,7 +148,9 @@ dist/rulectl --help
 ### Updating Python Version
 Edit `.github/workflows/release.yml`:
 ```yaml
-python-version: '3.11'  # Change from 3.11
+# Change the version of Python shipped with the rulectl binary, for example upgrade to Python 3.12
+# Actual release version is tracked in version.py in the repository root.
+python-version: '3.12'  
 ```
 
 ### Adding New Platform
