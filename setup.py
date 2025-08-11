@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Setup script for Rules Engine CLI tool.
+Setup script for Rulectl CLI tool.
 """
 
 from setuptools import setup, find_packages
@@ -14,14 +14,14 @@ if readme_path.exists():
     long_description = readme_path.read_text(encoding="utf-8")
 
 setup(
-    name="rules-engine",
+    name="rulectl",
     version="0.1.0",
-    author="Rules Engine Team",
-    author_email="team@rules-engine.dev",
+    author="Rulectl Team",
+    author_email="info@rulectl.com",
     description="A CLI tool for analyzing and creating cursor rules in repositories",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/rules-engine/rules-engine",
+    url="https://github.com/actual-software/rulectl",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -54,7 +54,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "rules-engine=rules_engine.cli:main",
+            "rulectl=rulectl.cli:main",
         ],
     },
     include_package_data=True,

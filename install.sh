@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Rules Engine One-Line Installation Script
-# Usage: curl -sSL https://raw.githubusercontent.com/SprintReviewAI/rules_engine/main/install.sh | bash
+# Rulectl One-Line Installation Script
+# Usage: curl -sSL https://raw.githubusercontent.com/actual-software/rulectl/main/install.sh | bash
 # Usage with auto-yes: curl -sSL ... | bash -s -- --yes
 
 set -euo pipefail
@@ -38,9 +38,9 @@ NC='\033[0m' # No Color
 
 # Configuration
 REPO_URL="https://github.com/actual-software/rulectl.git"
-TEMP_DIR="/tmp/rules_engine_install_$$"
+TEMP_DIR="/tmp/rulectl_install_$$"
 TARGET_DIR="$HOME/.local/bin"
-BINARY_NAME="rules-engine"
+BINARY_NAME="rulectl"
 
 # Helper functions
 log_info() {
@@ -81,7 +81,7 @@ check_command() {
 }
 
 # Pre-installation checks
-log_info "Starting Rules Engine installation..."
+log_info "Starting Rulectl installation..."
 
 # Check for required commands
 log_info "Checking dependencies..."
@@ -555,7 +555,7 @@ fi
 log_success "Installation verification passed"
 
 # Final success message
-log_success "Rules Engine installed successfully!"
+log_success "Rulectl installed successfully!"
 log_info "You can now run: $BINARY_NAME --help"
 
 # Final message
