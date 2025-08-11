@@ -21,12 +21,12 @@ def find_baml_cli():
                      os.environ.get('container') == 'docker' or
                      os.path.exists('/proc/1/cgroup'))  # Alternative Docker detection
         is_ci = any(key in os.environ for key in ['CI', 'GITHUB_ACTIONS', 'GITLAB_CI', 'JENKINS_URL'])
-        is_build = os.environ.get('RULES_ENGINE_BUILD') == '1'
+        is_build = os.environ.get('RULECTL_BUILD') == '1'
         
         # Allow if any isolation method is detected
         if not (is_venv or is_docker or is_ci or is_build):
             print("Error: This script should be run in an isolated environment (virtual environment, Docker, CI, or build mode)")
-            print("To bypass this check, set RULES_ENGINE_BUILD=1")
+            print("To bypass this check, set RULECTL_BUILD=1")
             sys.exit(1)
         
         # Determine the bin directory name based on platform

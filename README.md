@@ -43,7 +43,7 @@ This will automatically:
 Both methods will:
 - ✅ Install Python 3.11+ if not present (via pyenv)
 - ✅ Configure PATH automatically in shell profiles
-- ✅ Build and install the rules-engine binary
+- ✅ Build and install the rulectl binary
 - ✅ Verify installation works correctly
 - ✅ Clean up temporary files
 

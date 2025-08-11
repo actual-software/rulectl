@@ -1,10 +1,10 @@
 # Installer Tests
 
-This directory contains comprehensive end-to-end (E2E) tests for the Rules Engine installation script (`install.sh`). These tests ensure the installer works correctly across different platforms and scenarios.
+This directory contains comprehensive end-to-end (E2E) tests for the Rulectl installation script (`install.sh`). These tests ensure the installer works correctly across different platforms and scenarios.
 
 ## Overview
 
-The test suite uses Docker containers to create clean, reproducible environments that simulate real-world installation scenarios. The tests verify the complete installation flow from a fresh system to a working rules-engine binary.
+The test suite uses Docker containers to create clean, reproducible environments that simulate real-world installation scenarios. The tests verify the complete installation flow from a fresh system to a working rulectl binary.
 
 ### Key Features Tested
 
@@ -150,7 +150,7 @@ All tests passed!
 4. **Verify PATH**: 
    ```bash
    echo $PATH
-   which rules-engine
+   which rulectl
    ```
 
 ## Known Limitations

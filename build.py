@@ -30,7 +30,7 @@ def build_executable():
     
     # Set environment variables for build
     os.environ["BAML_LOG"] = "OFF"
-    os.environ["RULES_ENGINE_BUILD"] = "1"  # Indicate we're in build mode
+    os.environ["RULECTL_BUILD"] = "1"  # Indicate we're in build mode
     
     # Determine the executable name based on platform
     if platform.system() == "Windows":
@@ -192,7 +192,7 @@ def main():
     if success:
         print("\n📦 Build process complete!")
         # Only show distribution instructions if not running from installer
-        if not os.environ.get('RULES_ENGINE_INSTALLER'):
+        if not os.environ.get('RULECTL_INSTALLER'):
             print("\nTo distribute the executable:")
             print(f"1. Copy the executable from {Path('dist').absolute()}")
             print("2. The executable is self-contained and can run directly")

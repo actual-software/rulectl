@@ -280,7 +280,7 @@ async def async_start(verbose: bool, force: bool, directory: str):
             click.echo("✅ Using bundled BAML client")
             # The baml_client should be available from the bundle
         # Skip BAML initialization during builds
-        elif os.environ.get("RULES_ENGINE_BUILD") == "1":
+        elif os.environ.get("RULECTL_BUILD") == "1":
             click.echo("⚠️ Skipping BAML initialization during build")
         else:
             click.echo("\n🔄 BAML client not found. Initializing...")

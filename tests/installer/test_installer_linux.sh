@@ -39,13 +39,13 @@ if [ -d "$HOME/.pyenv" ]; then
 fi
 
 log_test "Verifying installation"
-if [ -f "$HOME/.local/bin/rules-engine" ]; then
+if [ -f "$HOME/.local/bin/rulectl" ]; then
     log_pass "Binary installed"
 else
     log_fail "Binary not found"
 fi
 
-if rules-engine --help &> /dev/null; then
+if rulectl --help &> /dev/null; then
     log_pass "Binary works"
 else
     log_fail "Binary doesn't work"

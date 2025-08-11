@@ -445,7 +445,7 @@ if [[ ":$PATH:" != *":$EXPANDED_TARGET_DIR:"* ]]; then
             if ! grep -q "export PATH=\"\$HOME/.local/bin:\$PATH\"" "$profile" 2>/dev/null && \
                ! grep -q "export PATH=.*\$HOME/.local/bin" "$profile" 2>/dev/null; then
                 echo '' >> "$profile"
-                echo '# Added by Rules Engine installer' >> "$profile"
+                echo '# Added by Rulectl installer' >> "$profile"
                 echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$profile"
                 log_success "Added PATH to $profile"
             else
@@ -493,8 +493,8 @@ log_success "Virtual environment activated"
 
 # Set environment variables for build
 export BAML_LOG=OFF
-export RULES_ENGINE_BUILD=1
-export RULES_ENGINE_INSTALLER=1  # Indicates running from installer
+export RULECTL_BUILD=1
+export RULECTL_INSTALLER=1  # Indicates running from installer
 
 # Upgrade pip to avoid issues
 log_info "Upgrading pip..."
