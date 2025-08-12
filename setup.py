@@ -39,7 +39,7 @@ setup(
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
     ],
-    python_requires=">=3.8",
+    python_requires=">=3.11",
     install_requires=[
         "click>=8.1.0",
         "colorama>=0.4.6",
