@@ -25,9 +25,12 @@ def clean_build_dirs():
 
 def build_executable():
     """Build the standalone executable."""
+    import subprocess
+    import logging
+    
     # Set environment variables for build
     os.environ["BAML_LOG"] = "OFF"
-    os.environ["RULES_ENGINE_BUILD"] = "1"  # Indicate we're in build mode
+    os.environ["RULECTL_BUILD"] = "1"  # Indicate we're in build mode
     
     # Determine the executable name based on platform
     if platform.system() == "Windows":
@@ -37,6 +40,7 @@ def build_executable():
 
     # PyInstaller arguments
     args = [
+        sys.executable, '-m', 'PyInstaller',
         'rulectl/cli.py',  # Your entry point
         '--name=%s' % exe_name,
         '--onefile',  # Create a single executable
@@ -64,6 +68,7 @@ def build_executable():
         '--runtime-hook=suppress_warnings.py',  # Add warning suppression
         '--add-data=baml_client:baml_client',  # Include pre-generated BAML client
         '--add-data=config:config',  # Include configuration files (model pricing, etc.)
+        '--log-level=WARN',  # Only show warnings and errors from PyInstaller
     ]
 
     # Add platform-specific options
@@ -73,20 +78,51 @@ def build_executable():
             '--osx-bundle-identifier=dev.rulectl.cli'  # Add bundle identifier
         ])
 
-    print("🔨 Building executable...")
-    PyInstaller.__main__.run(args)
+    print("🔨 Building executable (this may take a minute)...")
+    
+    # Check if we should show debug output
+    debug_mode = os.environ.get('BUILD_DEBUG', '').lower() in ['1', 'true', 'yes']
+    
+    try:
+        if debug_mode:
+            print("📋 Debug mode enabled. Showing full PyInstaller output...")
+            result = subprocess.run(args, check=True)
+        else:
+            # Run PyInstaller and capture output
+            result = subprocess.run(args, check=True, capture_output=True, text=True)
+            
+            # Only show errors if they occur
+            if result.stderr and 'ERROR' in result.stderr:
+                print("⚠️  Build warnings/errors:")
+                for line in result.stderr.split('\n'):
+                    if 'ERROR' in line or 'WARNING' in line:
+                        print(f"  {line}")
+            
+            # Show a simple progress indicator
+            print("  📦 Packaging application...")
+            print("  🔗 Bundling dependencies...")
+            print("  ✨ Creating standalone executable...")
+    except subprocess.CalledProcessError as e:
+        print("❌ Build failed!")
+        if not debug_mode:
+            print("\nRun with BUILD_DEBUG=1 to see detailed output:")
+            print("  BUILD_DEBUG=1 python build.py")
+        if e.stderr:
+            print("\nError output:")
+            print(e.stderr)
+        return False
     
     # Get the path to the created executable
     dist_dir = Path("dist")
     exe_path = dist_dir / exe_name
     
     if exe_path.exists():
-        print(f"\n✅ Build successful! Executable created at: {exe_path}")
+        print(f"\n✅ Build successful! Executable created at: {exe_path.absolute()}")
         print("\nTo run the executable:")
         if platform.system() == "Windows":
-            print(f"  {exe_path}")
+            print(f"  {exe_path.absolute()}")
         else:
-            print(f"  ./{exe_path}")
+            print(f"  {exe_path.absolute()}")
             
         # Make the file executable on Unix systems
         if platform.system() != "Windows":
@@ -122,11 +158,14 @@ def run_baml_generation():
         print("⚠️  BAML generation not available. Please ensure baml_init.py is present.")
         return True  # Continue with build anyway
     
-    print("🔧 Running BAML generation...")
-    success = generate_baml(verbose=True)
-    if success:
-        print("✅ BAML generation completed")
+    debug_mode = os.environ.get('BUILD_DEBUG', '').lower() in ['1', 'true', 'yes']
+    if not debug_mode:
+        print("🔧 Generating BAML client...")
     else:
+        print("🔧 Running BAML generation...")
+    
+    success = generate_baml(verbose=True)
+    if not success:
         print("❌ BAML generation failed")
     return success
 
@@ -152,10 +191,12 @@ def main():
     
     if success:
         print("\n📦 Build process complete!")
-        print("\nTo distribute the executable:")
-        print("1. Copy the executable from the 'dist' directory")
-        print("2. The executable is self-contained and can run directly")
-        print("3. No Python installation required on the target machine")
+        # Only show distribution instructions if not running from installer
+        if not os.environ.get('RULECTL_INSTALLER'):
+            print("\nTo distribute the executable:")
+            print(f"1. Copy the executable from {Path('dist').absolute()}")
+            print("2. The executable is self-contained and can run directly")
+            print("3. No Python installation required on the target machine")
     else:
         print("\n💥 Build process failed!")
         exit(1)

@@ -44,7 +44,7 @@ def main():
         return False
     
     # Test BAML import (optional during build process)
-    if os.environ.get("RULES_ENGINE_BUILD") == "1":
+    if os.environ.get("RULECTL_BUILD") == "1":
         print("🧪 Skipping BAML import test during build (will be generated later)")
         return True
     else:

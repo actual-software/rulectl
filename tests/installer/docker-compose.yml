@@ -1,0 +1,13 @@
+services:
+  test-linux:
+    build:
+      context: .
+      dockerfile: Dockerfile.ubuntu22
+    volumes:
+      # Mount the repository root so the test can access install.sh
+      - ../../:/repo:ro
+    environment:
+      # Set to non-interactive for automated testing
+      - DEBIAN_FRONTEND=noninteractive
+    stdin_open: true
+    tty: true

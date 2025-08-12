@@ -17,54 +17,76 @@ Bulid by [Actual Software](http://actual.ai)
 
 ## Installation
 
-### One-Line Installation (Recommended)
+### Quick Install (macOS/Linux)
 
-Install directly to your system with a single command:
+Choose one of the following installation methods:
 
+#### Interactive Installation (Recommended)
 ```bash
-curl -sSL https://raw.githubusercontent.com/actual-software/rulectl/refs/heads/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/actual-software/rulectl/main/install.sh | bash
 ```
+This will prompt you to:
+- Install Python 3.11+ if not available (via pyenv)
+- Confirm installation of dependencies
+- Set up your environment interactively
 
-This will:
-- ✅ Check Python 3.6+ and git dependencies
-- ✅ Clone and build the latest version automatically  
-- ✅ Install to `~/.local/bin` (no sudo required)
+#### Automated Installation (CI/CD friendly)
+```bash
+curl -sSL https://raw.githubusercontent.com/actual-software/rulectl/main/install.sh | bash -s -- --yes
+```
+This will automatically:
+- Install all dependencies without prompts
+- Set up Python 3.11+ if needed
+- Configure PATH in your shell profiles
+- Complete installation non-interactively
+
+Both methods will:
+- ✅ Install Python 3.11+ if not present (via pyenv)
+- ✅ Configure PATH automatically in shell profiles
+- ✅ Build and install the rulectl binary
 - ✅ Verify installation works correctly
 - ✅ Clean up temporary files
 
-**First time setup:** If `~/.local/bin` isn't in your PATH, add this to your shell profile:
-```bash
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc  # or ~/.zshrc
-source ~/.bashrc  # or ~/.zshrc
-```
+### Windows Installation
+
+Windows users must build from source:
+
+1. Install [Python 3.11+](https://www.python.org/downloads/)
+2. Install [Git](https://git-scm.com/download/win)
+3. Follow the [Manual Installation](#manual-installation) steps below
 
 ### Manual Installation
 
 For more control or if the one-line installer doesn't work:
 
-1. **Clone the repository:**
+1. **Prerequisites (for manual installation only):**
+   - Python 3.11 or higher (Note: The automated installer above handles Python installation for you)
+   - Git
+   - C compiler (for building Python packages)
+
+2. **Clone the repository:**
 ```bash
 git clone https://github.com/actual-software/rulectl.git
 cd rulectl
 ```
 
-2. **Set up virtual environment:**
+3. **Set up virtual environment:**
 ```bash
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-3. **Install dependencies:**
+4. **Install dependencies:**
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **Build the executable:**
+5. **Build the executable:**
 ```bash
 python build.py
 ```
 
-5. **Install to system:**
+6. **Install to system:**
 ```bash
 # Copy to ~/.local/bin (recommended)
 cp dist/rulectl ~/.local/bin/
@@ -73,7 +95,7 @@ cp dist/rulectl ~/.local/bin/
 sudo cp dist/rulectl /usr/local/bin/
 ```
 
-6. **Verify installation:**
+7. **Verify installation:**
 ```bash
 rulectl --help
 ```
