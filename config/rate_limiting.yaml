@@ -1,0 +1,82 @@
+# =============================================================================
+# RATE LIMITING CONFIGURATION for Rulectl
+# =============================================================================
+#
+# This file configures rate limiting behavior to prevent hitting API rate limits.
+# Modify these settings to work within your API provider's limits.
+#
+# MAINTENANCE:
+#   - Last updated: 2025-01-07
+#   - Update frequency: Check when changing API providers or plans
+#   - Always verify limits against your API provider's documentation
+#
+# USAGE:
+#   - Loaded automatically by RateLimiter class
+#   - Can be overridden via environment variables
+#   - Settings apply to all API calls made by rulectl
+#
+# =============================================================================
+
+# Basic rate limiting settings
+rate_limits:
+  # Anthropic API limits (adjust based on your plan)
+  anthropic:
+    requests_per_minute: 5 # Default for most plans
+    base_delay_ms: 1000 # 1 second base delay
+    max_delay_ms: 60000 # 1 minute max delay
+
+  # OpenAI API limits (adjust based on your plan)
+  openai:
+    requests_per_minute: 60 # Default for most plans
+    base_delay_ms: 500 # 0.5 second base delay
+    max_delay_ms: 30000 # 30 seconds max delay
+
+  # Default settings (used when provider-specific settings not found)
+  default:
+    requests_per_minute: 5
+    base_delay_ms: 1000
+    max_delay_ms: 60000
+
+# Rate limiting strategy
+strategy:
+  type: "adaptive" # Options: constant, exponential, adaptive
+  exponential_multiplier: 2.0 # How much to increase delay on failures
+  jitter_ms: 100 # Random jitter to prevent thundering herd
+
+# Fallback configuration
+fallback:
+  enabled: true
+  delay_before_fallback_ms: 5000 # Wait 5 seconds before trying fallback models
+
+# Batch processing
+batching:
+  enabled: true
+  max_batch_size: 3 # Process up to 3 files per batch
+  delay_between_batches_ms: 2000 # 2 second delay between batches
+
+# Advanced settings
+advanced:
+  # Whether to show rate limiting status in progress bars
+  show_status: true
+
+  # Whether to log rate limiting events
+  log_events: true
+
+  # Maximum number of consecutive failures before aggressive backoff
+  max_consecutive_failures: 3
+
+  # Whether to automatically switch to cheaper models when rate limited
+  auto_fallback: true
+
+  # Custom delay overrides for specific error types
+  error_delays:
+    rate_limit_error: 10000 # 10 seconds for rate limit errors
+    server_error: 5000 # 5 seconds for server errors
+    timeout_error: 3000 # 3 seconds for timeout errors
+
+# Environment variable overrides
+# These can be set in your shell to override the above settings:
+# export RULECTL_RATE_LIMIT_REQUESTS_PER_MINUTE=10
+# export RULECTL_RATE_LIMIT_BASE_DELAY_MS=500
+# export RULECTL_RATE_LIMIT_STRATEGY=exponential
+# export RULECTL_RATE_LIMIT_BATCHING_ENABLED=false
