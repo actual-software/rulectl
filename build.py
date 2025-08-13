@@ -94,8 +94,9 @@ def build_executable():
             print("📋 Debug mode enabled. Showing full PyInstaller output...")
             result = subprocess.run(args, check=True)
         else:
-            # Run PyInstaller and capture output
-            result = subprocess.run(args, capture_output=True, text=True)
+            # Run PyInstaller and capture output with proper encoding
+            encoding = 'utf-8' if sys.platform != "win32" else 'utf-8'
+            result = subprocess.run(args, capture_output=True, text=True, encoding=encoding, errors='replace')
             
             # Check for actual failure (don't rely only on exceptions)
             if result.returncode != 0:
@@ -196,7 +197,7 @@ def fix_dependencies():
         import subprocess
         result = subprocess.run([
             sys.executable, "fix_dependencies.py"
-        ], check=True, capture_output=True, text=True)
+        ], check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
         print("✅ Dependencies verified")
         return True
     except subprocess.CalledProcessError as e:
