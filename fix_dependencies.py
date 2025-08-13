@@ -7,6 +7,12 @@ import subprocess
 import sys
 import os
 
+# Fix Unicode output on Windows
+if sys.platform == "win32":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8', errors='replace')
+
 def run_command(cmd, description):
     """Run a command and handle errors."""
     print(f"🔧 {description}...")
@@ -36,7 +42,7 @@ def main():
     ]
     
     for package in critical_packages:
-        if not run_command(f"{sys.executable} -m pip install --upgrade '{package}'", f"Installing/upgrading {package}"):
+        if not run_command(f'{sys.executable} -m pip install --upgrade "{package}"', f"Installing/upgrading {package}"):
             return False
     
     # Install all requirements

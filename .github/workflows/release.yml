@@ -152,7 +152,7 @@ jobs:
           BAML_LOG: 'OFF'
           RULECTL_BUILD: '1'
         run: |
-          call venv\Scripts\activate && python -m pip install --upgrade "typing_extensions>=4.8.0" && python -m pip install --upgrade "pydantic>=2.6.0" && python -m pip install -r requirements.txt
+          call venv\Scripts\activate && python fix_dependencies.py
         shell: cmd
 
       - name: Install dependencies (Unix)
@@ -162,9 +162,7 @@ jobs:
           RULECTL_BUILD: '1'
         run: |
           source venv/bin/activate
-          python -m pip install --upgrade "typing_extensions>=4.8.0"
-          python -m pip install --upgrade "pydantic>=2.6.0"
-          python -m pip install -r requirements.txt
+          python fix_dependencies.py
         shell: bash
 
       - name: Generate BAML client (Windows)
@@ -229,13 +227,19 @@ jobs:
       - name: Test binary (Windows)
         if: matrix.os == 'windows'
         run: |
-          echo "Testing binary with --help command..."
+          echo "Testing binary with --help command (Unicode output test)..."
           dist\${{ matrix.binary_name }} --help
           if %ERRORLEVEL% NEQ 0 (
             echo "Binary test failed!"
             exit 1
           )
-          echo "Binary test passed!"
+          echo "Testing binary config command..."
+          dist\${{ matrix.binary_name }} config --help
+          if %ERRORLEVEL% NEQ 0 (
+            echo "Config command test failed!"
+            exit 1
+          )
+          echo "All binary tests passed!"
         shell: cmd
 
       - name: Test binary (Unix)
@@ -243,13 +247,21 @@ jobs:
         run: |
           echo "Setting executable permissions..."
           chmod +x dist/${{ matrix.binary_name }}
-          echo "Testing binary with --help command..."
+          echo "Testing binary with --help command (Unicode output test)..."
           if dist/${{ matrix.binary_name }} --help; then
-            echo "Binary test passed!"
+            echo "Help command test passed!"
           else
-            echo "Binary test failed!"
+            echo "Help command test failed!"
             exit 1
           fi
+          echo "Testing binary config command..."
+          if dist/${{ matrix.binary_name }} config --help; then
+            echo "Config command test passed!"
+          else
+            echo "Config command test failed!"
+            exit 1
+          fi
+          echo "All binary tests passed!"
         shell: bash
 
       - name: Rename binary for release
