@@ -73,7 +73,7 @@ jobs:
             arch: x64
             runner: windows-latest
             binary_name: rulectl.exe
-            artifact_name: rulectl-windows-x64-v${{ needs.detect-version-change.outputs.new_version }}.exe
+            artifact_name: rulectl-windows-x86_64-v${{ needs.detect-version-change.outputs.new_version }}.exe
             python_arch: x64
           
           # Windows ARM64 (using emulation on x64 runner for now)
@@ -81,7 +81,7 @@ jobs:
             arch: arm64
             runner: windows-latest
             binary_name: rulectl.exe
-            artifact_name: rulectl-windows-arm64-v${{ needs.detect-version-change.outputs.new_version }}.exe
+            artifact_name: rulectl-windows-aarch64-v${{ needs.detect-version-change.outputs.new_version }}.exe
             python_arch: x64
             use_emulation: true
           
@@ -90,7 +90,7 @@ jobs:
             arch: x64
             runner: macos-13
             binary_name: rulectl
-            artifact_name: rulectl-darwin-x64-v${{ needs.detect-version-change.outputs.new_version }}
+            artifact_name: rulectl-darwin-x86_64-v${{ needs.detect-version-change.outputs.new_version }}
             python_arch: x64
           
           # macOS ARM64 (Apple Silicon)
@@ -98,7 +98,7 @@ jobs:
             arch: arm64
             runner: macos-14
             binary_name: rulectl
-            artifact_name: rulectl-darwin-arm64-v${{ needs.detect-version-change.outputs.new_version }}
+            artifact_name: rulectl-darwin-aarch64-v${{ needs.detect-version-change.outputs.new_version }}
             python_arch: arm64
           
           # Linux x64
@@ -106,7 +106,7 @@ jobs:
             arch: x64
             runner: ubuntu-latest
             binary_name: rulectl
-            artifact_name: rulectl-linux-x64-v${{ needs.detect-version-change.outputs.new_version }}
+            artifact_name: rulectl-linux-x86_64-v${{ needs.detect-version-change.outputs.new_version }}
             python_arch: x64
           
           # Linux ARM64 (free runner available for public repos)
@@ -114,7 +114,7 @@ jobs:
             arch: arm64
             runner: ubuntu-24.04-arm
             binary_name: rulectl
-            artifact_name: rulectl-linux-arm64-v${{ needs.detect-version-change.outputs.new_version }}
+            artifact_name: rulectl-linux-aarch64-v${{ needs.detect-version-change.outputs.new_version }}
             python_arch: arm64
 
     steps:
@@ -318,12 +318,12 @@ jobs:
           
           | Platform | Architecture | Download |
           |----------|-------------|----------|
-          | Windows | x64 | \`rulectl-windows-x64-v${VERSION}.exe\` |
-          | Windows | ARM64 | \`rulectl-windows-arm64-v${VERSION}.exe\` |
-          | macOS | Intel (x64) | \`rulectl-darwin-x64-v${VERSION}\` |
-          | macOS | Apple Silicon (ARM64) | \`rulectl-darwin-arm64-v${VERSION}\` |
-          | Linux | x64 | \`rulectl-linux-x64-v${VERSION}\` |
-          | Linux | ARM64 | \`rulectl-linux-arm64-v${VERSION}\` |
+          | Windows | x86_64 | \`rulectl-windows-x86_64-v${VERSION}.exe\` |
+          | Windows | aarch64 | \`rulectl-windows-aarch64-v${VERSION}.exe\` |
+          | macOS | x86_64 | \`rulectl-darwin-x86_64-v${VERSION}\` |
+          | macOS | aarch64 | \`rulectl-darwin-aarch64-v${VERSION}\` |
+          | Linux | x86_64 | \`rulectl-linux-x86_64-v${VERSION}\` |
+          | Linux | aarch64 | \`rulectl-linux-aarch64-v${VERSION}\` |
           
           ### 🚀 Installation
           
@@ -368,12 +368,12 @@ jobs:
           draft: true
           prerelease: false
           files: |
-            release-assets/rulectl-windows-x64-v${{ needs.detect-version-change.outputs.new_version }}.exe
-            release-assets/rulectl-windows-arm64-v${{ needs.detect-version-change.outputs.new_version }}.exe
-            release-assets/rulectl-darwin-x64-v${{ needs.detect-version-change.outputs.new_version }}
-            release-assets/rulectl-darwin-arm64-v${{ needs.detect-version-change.outputs.new_version }}
-            release-assets/rulectl-linux-x64-v${{ needs.detect-version-change.outputs.new_version }}
-            release-assets/rulectl-linux-arm64-v${{ needs.detect-version-change.outputs.new_version }}
+            release-assets/rulectl-windows-x86_64-v${{ needs.detect-version-change.outputs.new_version }}.exe
+            release-assets/rulectl-windows-aarch64-v${{ needs.detect-version-change.outputs.new_version }}.exe
+            release-assets/rulectl-darwin-x86_64-v${{ needs.detect-version-change.outputs.new_version }}
+            release-assets/rulectl-darwin-aarch64-v${{ needs.detect-version-change.outputs.new_version }}
+            release-assets/rulectl-linux-x86_64-v${{ needs.detect-version-change.outputs.new_version }}
+            release-assets/rulectl-linux-aarch64-v${{ needs.detect-version-change.outputs.new_version }}
           fail_on_unmatched_files: true
           generate_release_notes: false
 
