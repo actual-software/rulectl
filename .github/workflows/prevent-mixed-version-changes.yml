@@ -1,3 +1,6 @@
+permissions:
+  contents: read
+  pull-requests: write
 name: Prevent Mixed Version and Code Changes
 
 on:
