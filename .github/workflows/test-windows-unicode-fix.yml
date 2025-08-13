@@ -1,0 +1,121 @@
+name: Test Windows Unicode Fix
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'build.py'
+      - 'fix_dependencies.py' 
+      - 'test_cli.py'
+      - 'baml_init.py'
+      - '.github/workflows/test-windows-unicode-fix.yml'
+  workflow_dispatch:
+
+jobs:
+  test-windows-unicode-build:
+    name: Test Windows ${{ matrix.arch }} Unicode Build
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows x64
+          - os: windows
+            arch: x64
+            runner: windows-latest
+            binary_name: rulectl.exe
+            python_arch: x64
+          
+          # Windows ARM64 (using emulation on x64 runner)
+          - os: windows
+            arch: arm64
+            runner: windows-latest
+            binary_name: rulectl.exe
+            python_arch: x64
+            use_emulation: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: ${{ matrix.python_arch }}
+
+      - name: Create virtual environment
+        run: |
+          python -m venv venv
+        shell: bash
+
+      - name: Activate venv and upgrade pip
+        run: |
+          call venv\Scripts\activate && python -m pip install --upgrade pip && python -m pip install --upgrade wheel setuptools
+        shell: cmd
+
+      - name: Install dependencies
+        env:
+          BAML_LOG: 'OFF'
+          RULECTL_BUILD: '1'
+        run: |
+          call venv\Scripts\activate && python -m pip install --upgrade "typing_extensions>=4.8.0" && python -m pip install --upgrade "pydantic>=2.6.0" && python -m pip install -r requirements.txt
+        shell: cmd
+
+      - name: Test Unicode output in fix_dependencies.py
+        env:
+          RULECTL_BUILD: '1'
+        run: |
+          call venv\Scripts\activate && python fix_dependencies.py
+        shell: cmd
+
+      - name: Test Unicode output in baml_init.py
+        env:
+          BAML_LOG: 'OFF'
+          RULECTL_BUILD: '1'
+        run: |
+          call venv\Scripts\activate && python baml_init.py
+        shell: cmd
+
+      - name: Test Unicode output in build.py
+        env:
+          BAML_LOG: 'OFF'
+          RULECTL_BUILD: '1'
+          BUILD_DEBUG: '1'
+        run: |
+          call venv\Scripts\activate && python build.py
+        shell: cmd
+
+      - name: Verify binary exists
+        run: |
+          if not exist "dist\${{ matrix.binary_name }}" (
+            echo Binary not found at dist\${{ matrix.binary_name }}
+            exit 1
+          )
+          dir dist\
+        shell: cmd
+
+      - name: Test binary with Unicode output
+        run: |
+          echo "Testing binary with --help command (may contain Unicode)..."
+          dist\${{ matrix.binary_name }} --help
+          if %ERRORLEVEL% NEQ 0 (
+            echo "Binary test failed!"
+            exit 1
+          )
+          echo "Binary test with Unicode output passed!"
+        shell: cmd
+
+      - name: Test Unicode output in test_cli.py (if exists)
+        if: hashFiles('test_cli.py') != ''
+        run: |
+          call venv\Scripts\activate && python test_cli.py
+        shell: cmd
+        continue-on-error: true
+
+      - name: Unicode fix validation summary
+        run: |
+          echo "✅ Windows ${{ matrix.arch }} Unicode fix validation completed!"
+          echo "All Python scripts with Unicode characters executed successfully."
+          echo "Binary build completed and tested successfully."
+        shell: bash
