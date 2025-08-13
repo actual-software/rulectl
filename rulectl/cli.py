@@ -579,18 +579,57 @@ async def async_start(verbose: bool, force: bool, rate_limit: Optional[int], bat
     if verbose:
         click.echo(f"\n📋 Final analysis list: {len(all_files)} files")
     
-    # Step 3: Analyze files with rate limiting and batch processing
-    click.echo("\n🔎 Analyzing files with rate limiting...")
+    # Step 3: Analyze files with rate limiting and progress tracking
+    click.echo("\n🔎 Analyzing files...")
     
-    # Show rate limiting status if available
-    if analyzer.rate_limiter:
-        status = analyzer.rate_limiter.get_status()
-        click.echo(f"📊 Rate limiting: {status['requests_this_window']}/{status['max_requests_per_window']} requests this minute")
-        if status['rate_limited']:
-            click.echo(f"⏳ Rate limited - waiting {status['window_remaining_seconds']:.0f} seconds for reset")
+    # Progress bar with rate limiting and token tracking
+    all_static_analyses = []
     
-    # Use batch processing with rate limiting for better efficiency
-    all_static_analyses = await analyzer.analyze_files_with_rate_limiting(all_files)
+    def get_progress_info(file_path):
+        if not file_path:
+            return ""
+        
+        # Always show token info, even if 0
+        token_info = " | 📊 0 tokens ($0.00)"  # Default
+        
+        if analyzer.token_tracker:
+            current_tokens = analyzer.token_tracker.get_total_tokens()
+            current_cost = analyzer.token_tracker.total_cost
+            token_info = f" | 📊 {current_tokens:,} tokens (${current_cost:.2f})"
+        
+        # Add rate limiting info
+        rate_info = ""
+        if analyzer.rate_limiter:
+            status = analyzer.rate_limiter.get_status()
+            rate_info = f" | 🚦 {status['requests_this_window']}/{status['max_requests_per_window']} req/min"
+        
+        return f"Current: {file_path}{token_info}{rate_info}"
+    
+    with click.progressbar(
+        all_files,
+        label="Analyzing files",
+        item_show_func=get_progress_info,
+        show_eta=True,
+        show_percent=True,
+        show_pos=True,
+        length=len(all_files),
+        bar_template='%(label)s  [%(bar)s]  %(info)s'
+    ) as bar:
+        for file_path in bar:
+            # Analyze individual file with rate limiting
+            result = await analyzer.analyze_file(file_path)
+            if result:  # Only add successful analyses
+                all_static_analyses.append(result)
+            
+            if verbose:
+                status = "✓" if result else "⚠"
+                
+                # Always show token info in verbose mode
+                token_info = " | 📊 0 tokens ($0.00)"  # Default
+                if analyzer.token_tracker:
+                    current_tokens = analyzer.token_tracker.get_total_tokens()
+                    current_cost = analyzer.token_tracker.total_cost
+                    token_info = f" | 📊 {current_tokens:,} tokens (${current_cost:.2f})"
     
     # Display file analysis results with token tracking
     if analyzer.token_tracker:
