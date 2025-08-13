@@ -166,8 +166,6 @@ def set_key(provider: str, key: str):
 @config.command("show")
 def show_config():
     """Show current configuration (with masked keys)."""
-    click.echo("\n🔧 Current Configuration:")
-    
     # Check stored keys
     anthropic_key = get_anthropic_api_key()
     openai_key = get_openai_api_key()
@@ -185,6 +183,94 @@ def show_config():
     # Show storage location
     creds_file = Path.home() / ".rulectl" / "credentials.json"
     click.echo(f"\n📁 Credentials stored in: {creds_file}")
+    
+    # Show rate limiting configuration
+    click.echo("\n📊 Rate Limiting Configuration:")
+    try:
+        from rulectl.rate_limiter import RateLimitConfig
+        config = RateLimitConfig()
+        click.echo(f"  • Requests per minute: {config.requests_per_minute}")
+        click.echo(f"  • Base delay: {config.base_delay_ms}ms")
+        click.echo(f"  • Max delay: {config.max_delay_ms}ms")
+        click.echo(f"  • Strategy: {config.strategy.value}")
+        click.echo(f"  • Batching: {'enabled' if config.enable_batching else 'disabled'}")
+        if config.enable_batching:
+            click.echo(f"  • Batch size: {config.max_batch_size}")
+            click.echo(f"  • Batch delay: {config.batch_delay_ms}ms")
+        click.echo(f"  • Fallback: {'enabled' if config.enable_fallback else 'disabled'}")
+    except ImportError:
+        click.echo("  • Rate limiter not available")
+    
+    # Show environment variable overrides
+    click.echo("\n🔧 Environment Variable Overrides:")
+    env_vars = [
+        ("RULECTL_RATE_LIMIT_REQUESTS_PER_MINUTE", "Rate limit (requests/minute)"),
+        ("RULECTL_RATE_LIMIT_BASE_DELAY_MS", "Base delay (milliseconds)"),
+        ("RULECTL_RATE_LIMIT_STRATEGY", "Rate limiting strategy"),
+        ("RULECTL_RATE_LIMIT_BATCHING_ENABLED", "Enable/disable batching"),
+    ]
+    
+    for env_var, description in env_vars:
+        value = os.getenv(env_var)
+        if value:
+            click.echo(f"  • {env_var}: {value} ({description})")
+        else:
+            click.echo(f"  • {env_var}: Not set ({description})")
+
+@config.command("rate-limit")
+@click.option("--requests", type=int, help="Set requests per minute limit")
+@click.option("--delay", type=int, help="Set base delay in milliseconds")
+@click.option("--strategy", type=click.Choice(["constant", "exponential", "adaptive"]), help="Set rate limiting strategy")
+@click.option("--batch-size", type=int, help="Set batch size for processing")
+@click.option("--enable-batching/--disable-batching", help="Enable or disable batch processing")
+@click.option("--show", is_flag=True, help="Show current rate limiting status")
+def configure_rate_limiting(requests: Optional[int], delay: Optional[int], strategy: Optional[str], 
+                           batch_size: Optional[int], enable_batching: Optional[bool], show: bool):
+    """Configure rate limiting settings."""
+    if show:
+        # Show current status
+        click.echo("📊 Current Rate Limiting Status:")
+        try:
+            from rulectl.rate_limiter import RateLimiter, RateLimitConfig
+            config = RateLimitConfig()
+            click.echo(f"  • Requests per minute: {config.requests_per_minute}")
+            click.echo(f"  • Base delay: {config.base_delay_ms}ms")
+            click.echo(f"  • Strategy: {config.strategy.value}")
+            click.echo(f"  • Batching: {'enabled' if config.enable_batching else 'disabled'}")
+            if config.enable_batching:
+                click.echo(f"  • Batch size: {config.max_batch_size}")
+                click.echo(f"  • Batch delay: {config.batch_delay_ms}ms")
+        except ImportError:
+            click.echo("  • Rate limiter not available")
+        return
+    
+    # Set configuration values
+    if requests is not None:
+        os.environ["RULECTL_RATE_LIMIT_REQUESTS_PER_MINUTE"] = str(requests)
+        click.echo(f"✅ Set rate limit to {requests} requests/minute")
+        
+    if delay is not None:
+        os.environ["RULECTL_RATE_LIMIT_BASE_DELAY_MS"] = str(delay)
+        click.echo(f"✅ Set base delay to {delay}ms")
+        
+    if strategy is not None:
+        os.environ["RULECTL_RATE_LIMIT_STRATEGY"] = strategy
+        click.echo(f"✅ Set strategy to {strategy}")
+        
+    if batch_size is not None:
+        os.environ["RULECTL_RATE_LIMIT_BATCH_SIZE"] = str(batch_size)
+        click.echo(f"✅ Set batch size to {batch_size}")
+        
+    if enable_batching is not None:
+        value = "true" if enable_batching else "false"
+        os.environ["RULECTL_RATE_LIMIT_BATCHING_ENABLED"] = value
+        status = "enabled" if enable_batching else "disabled"
+        click.echo(f"✅ {status.capitalize()} batch processing")
+    
+    if any([requests is not None, delay is not None, strategy is not None, 
+            batch_size is not None, enable_batching is not None]):
+        click.echo("\n💡 These settings will apply to the next rulectl start command")
+        click.echo("💡 To make them permanent, add them to your shell profile")
 
 @config.command("clear")
 @click.argument("provider", type=click.Choice(["anthropic", "openai", "all"], case_sensitive=False))
@@ -232,23 +318,58 @@ def clear_key(provider: str, force: bool):
 @cli.command()
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--force", "-f", is_flag=True, help="Skip confirmation prompts")
+@click.option("--rate-limit", type=int, help="Override rate limit (requests per minute)")
+@click.option("--batch-size", type=int, help="Override batch size for processing")
+@click.option("--delay-ms", type=int, help="Override base delay between requests (milliseconds)")
+@click.option("--no-batching", is_flag=True, help="Disable batch processing")
+@click.option("--strategy", type=click.Choice(["constant", "exponential", "adaptive"]), help="Rate limiting strategy")
 @click.argument("directory", type=click.Path(exists=True, file_okay=False, dir_okay=True), default=".")
-def start(verbose: bool, force: bool, directory: str):
+def start(verbose: bool, force: bool, rate_limit: Optional[int], batch_size: Optional[int], 
+          delay_ms: Optional[int], no_batching: bool, strategy: Optional[str], directory: str):
     """Start the Rulectl service.
     
     DIRECTORY: Path to the repository to analyze (default: current directory)
+    
+    Rate limiting options help prevent hitting API rate limits:
+    --rate-limit: Override requests per minute limit
+    --batch-size: Override batch size for processing files
+    --delay-ms: Override base delay between requests
+    --no-batching: Disable batch processing (process files one by one)
+    --strategy: Rate limiting strategy (constant, exponential, adaptive)
     """
     try:
         # Run the async main function
-        asyncio.run(async_start(verbose, force, directory))
+        asyncio.run(async_start(verbose, force, rate_limit, batch_size, delay_ms, no_batching, strategy, directory))
     except Exception as e:
         click.echo(f"\n❌ Error: {str(e)}")
         sys.exit(1)
 
-async def async_start(verbose: bool, force: bool, directory: str):
+async def async_start(verbose: bool, force: bool, rate_limit: Optional[int], batch_size: Optional[int],
+                     delay_ms: Optional[int], no_batching: bool, strategy: Optional[str], directory: str):
     """Async implementation of the start command."""
     # Convert directory to absolute path
     directory = str(Path(directory).resolve())
+    
+    # Set rate limiting environment variables if provided
+    if rate_limit:
+        os.environ["RULECTL_RATE_LIMIT_REQUESTS_PER_MINUTE"] = str(rate_limit)
+        click.echo(f"🔧 Overriding rate limit to {rate_limit} requests/minute")
+        
+    if batch_size:
+        os.environ["RULECTL_RATE_LIMIT_BATCH_SIZE"] = str(batch_size)
+        click.echo(f"🔧 Overriding batch size to {batch_size}")
+        
+    if delay_ms:
+        os.environ["RULECTL_RATE_LIMIT_BASE_DELAY_MS"] = str(delay_ms)
+        click.echo(f"🔧 Overriding base delay to {delay_ms}ms")
+        
+    if no_batching:
+        os.environ["RULECTL_RATE_LIMIT_BATCHING_ENABLED"] = "false"
+        click.echo("🔧 Disabling batch processing")
+        
+    if strategy:
+        os.environ["RULECTL_RATE_LIMIT_STRATEGY"] = strategy
+        click.echo(f"🔧 Setting rate limiting strategy to {strategy}")
     
     # Ensure we have required API keys before proceeding
     api_keys = ensure_api_keys()
@@ -458,8 +579,10 @@ async def async_start(verbose: bool, force: bool, directory: str):
     if verbose:
         click.echo(f"\n📋 Final analysis list: {len(all_files)} files")
     
-    # Step 3: Analyze files one by one
+    # Step 3: Analyze files with rate limiting and progress tracking
     click.echo("\n🔎 Analyzing files...")
+    
+    # Progress bar with rate limiting and token tracking
     all_static_analyses = []
     
     def get_progress_info(file_path):
@@ -474,15 +597,26 @@ async def async_start(verbose: bool, force: bool, directory: str):
             current_cost = analyzer.token_tracker.total_cost
             token_info = f" | 📊 {current_tokens:,} tokens (${current_cost:.2f})"
         
-        return f"Current: {file_path}{token_info}"
+        # Add rate limiting info
+        rate_info = ""
+        if analyzer.rate_limiter:
+            status = analyzer.rate_limiter.get_status()
+            rate_info = f" | 🚦 {status['requests_this_window']}/{status['max_requests_per_window']} req/min"
+        
+        return f"Current: {file_path}{token_info}{rate_info}"
     
     with click.progressbar(
         all_files,
         label="Analyzing files",
-        item_show_func=get_progress_info
+        item_show_func=get_progress_info,
+        show_eta=True,
+        show_percent=True,
+        show_pos=True,
+        length=len(all_files),
+        bar_template='%(label)s  [%(bar)s]  %(info)s'
     ) as bar:
         for file_path in bar:
-            # Analyze individual file
+            # Analyze individual file with rate limiting
             result = await analyzer.analyze_file(file_path)
             if result:  # Only add successful analyses
                 all_static_analyses.append(result)
@@ -496,10 +630,6 @@ async def async_start(verbose: bool, force: bool, directory: str):
                     current_tokens = analyzer.token_tracker.get_total_tokens()
                     current_cost = analyzer.token_tracker.total_cost
                     token_info = f" | 📊 {current_tokens:,} tokens (${current_cost:.2f})"
-                    # Debug: Additional info in verbose mode
-
-                
-
     
     # Display file analysis results with token tracking
     if analyzer.token_tracker:
