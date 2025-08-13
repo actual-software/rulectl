@@ -9,6 +9,12 @@ import sys
 import subprocess
 from pathlib import Path
 
+# Fix Unicode output on Windows
+if sys.platform == "win32":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8', errors='replace')
+
 def find_baml_cli():
     """Find the baml-cli executable in the virtual environment."""
     try:
