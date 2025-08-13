@@ -89,14 +89,36 @@ def build_executable():
             result = subprocess.run(args, check=True)
         else:
             # Run PyInstaller and capture output
-            result = subprocess.run(args, check=True, capture_output=True, text=True)
+            result = subprocess.run(args, capture_output=True, text=True)
             
-            # Only show errors if they occur
-            if result.stderr and 'ERROR' in result.stderr:
-                print("⚠️  Build warnings/errors:")
+            # Check for actual failure (don't rely only on exceptions)
+            if result.returncode != 0:
+                print("❌ PyInstaller failed!")
+                print("\nStdout:")
+                print(result.stdout)
+                print("\nStderr:")
+                print(result.stderr)
+                return False
+            
+            # Check for errors in output even if exit code was 0
+            has_errors = False
+            if result.stderr:
+                error_lines = []
                 for line in result.stderr.split('\n'):
-                    if 'ERROR' in line or 'WARNING' in line:
+                    if any(keyword in line.upper() for keyword in ['ERROR', 'FAILED', 'CRITICAL']):
+                        error_lines.append(line)
+                        has_errors = True
+                    elif 'WARNING' in line.upper():
+                        error_lines.append(line)
+                
+                if error_lines:
+                    print("⚠️  Build warnings/errors:")
+                    for line in error_lines:
                         print(f"  {line}")
+                
+                if has_errors:
+                    print("❌ Build failed due to errors in PyInstaller output!")
+                    return False
             
             # Show a simple progress indicator
             print("  📦 Packaging application...")
@@ -107,30 +129,57 @@ def build_executable():
         if not debug_mode:
             print("\nRun with BUILD_DEBUG=1 to see detailed output:")
             print("  BUILD_DEBUG=1 python build.py")
-        if e.stderr:
-            print("\nError output:")
-            print(e.stderr)
+        print("\nError output:")
+        print("Stdout:", e.stdout if hasattr(e, 'stdout') and e.stdout else "None")
+        print("Stderr:", e.stderr if hasattr(e, 'stderr') and e.stderr else "None")
         return False
     
     # Get the path to the created executable
     dist_dir = Path("dist")
     exe_path = dist_dir / exe_name
     
-    if exe_path.exists():
-        print(f"\n✅ Build successful! Executable created at: {exe_path.absolute()}")
-        print("\nTo run the executable:")
-        if platform.system() == "Windows":
-            print(f"  {exe_path.absolute()}")
+    # Verify the executable was actually created
+    if not exe_path.exists():
+        print(f"\n❌ Build failed! Executable not found at: {exe_path.absolute()}")
+        
+        # Show what files were actually created in dist/
+        if dist_dir.exists():
+            print(f"\nFiles found in {dist_dir.absolute()}:")
+            try:
+                for file in dist_dir.iterdir():
+                    if file.is_file():
+                        print(f"  • {file.name} ({file.stat().st_size} bytes)")
+                    else:
+                        print(f"  • {file.name}/ (directory)")
+            except Exception as e:
+                print(f"  Could not list directory: {e}")
         else:
-            print(f"  {exe_path.absolute()}")
-            
-        # Make the file executable on Unix systems
-        if platform.system() != "Windows":
-            exe_path.chmod(exe_path.stat().st_mode | 0o755)
-            print("\nMade executable with chmod +x")
-    else:
-        print("\n❌ Build failed! Executable not found.")
+            print(f"\n{dist_dir.absolute()} directory does not exist!")
+        
+        print(f"\nExpected executable: {exe_name}")
+        print("\nThis suggests PyInstaller completed but failed to create the executable.")
+        print("Try running with BUILD_DEBUG=1 to see detailed PyInstaller output:")
+        print("  BUILD_DEBUG=1 python build.py")
         return False
+    
+    # Verify the file is actually executable and has reasonable size
+    file_size = exe_path.stat().st_size
+    if file_size < 1024:  # Less than 1KB is suspicious
+        print(f"\n⚠️  Warning: Executable is very small ({file_size} bytes)")
+        print("This might indicate a problem with the build process.")
+    
+    print(f"\n✅ Build successful! Executable created at: {exe_path.absolute()}")
+    print(f"📊 File size: {file_size:,} bytes")
+    print("\nTo run the executable:")
+    if platform.system() == "Windows":
+        print(f"  {exe_path.absolute()}")
+    else:
+        print(f"  {exe_path.absolute()}")
+        
+    # Make the file executable on Unix systems
+    if platform.system() != "Windows":
+        exe_path.chmod(exe_path.stat().st_mode | 0o755)
+        print("\nMade executable with chmod +x")
 
     return True
 

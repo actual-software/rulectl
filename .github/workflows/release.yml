@@ -152,7 +152,7 @@ jobs:
         if: matrix.os == 'windows'
         env:
           BAML_LOG: 'OFF'
-          RULES_ENGINE_BUILD: '1'
+          RULECTL_BUILD: '1'
         run: |
           venv\Scripts\activate
           python -m pip install --upgrade "typing_extensions>=4.8.0"
@@ -164,7 +164,7 @@ jobs:
         if: matrix.os != 'windows'
         env:
           BAML_LOG: 'OFF'
-          RULES_ENGINE_BUILD: '1'
+          RULECTL_BUILD: '1'
         run: |
           source venv/bin/activate
           python -m pip install --upgrade "typing_extensions>=4.8.0"
@@ -176,7 +176,7 @@ jobs:
         if: matrix.os == 'windows'
         env:
           BAML_LOG: 'OFF'
-          RULES_ENGINE_BUILD: '1'
+          RULECTL_BUILD: '1'
         run: |
           venv\Scripts\activate
           python baml_init.py
@@ -186,7 +186,7 @@ jobs:
         if: matrix.os != 'windows'
         env:
           BAML_LOG: 'OFF'
-          RULES_ENGINE_BUILD: '1'
+          RULECTL_BUILD: '1'
         run: |
           source venv/bin/activate
           python baml_init.py
@@ -196,7 +196,8 @@ jobs:
         if: matrix.os == 'windows'
         env:
           BAML_LOG: 'OFF'
-          RULES_ENGINE_BUILD: '1'
+          RULECTL_BUILD: '1'
+          BUILD_DEBUG: '1'
         run: |
           venv\Scripts\activate
           python build.py
@@ -206,7 +207,7 @@ jobs:
         if: matrix.os != 'windows'
         env:
           BAML_LOG: 'OFF'
-          RULES_ENGINE_BUILD: '1'
+          RULECTL_BUILD: '1'
         run: |
           source venv/bin/activate
           python build.py
