@@ -1,3 +1,3 @@
 """Version information for rulectl."""
 
-VERSION = "0.1.1"
+VERSION = "0.1.2"
