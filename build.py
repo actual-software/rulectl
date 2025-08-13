@@ -6,6 +6,12 @@ Build script to create standalone executables using PyInstaller.
 import os
 import sys
 import platform
+
+# Fix Unicode output on Windows
+if sys.platform == "win32":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8', errors='replace')
 import PyInstaller.__main__
 import shutil
 from pathlib import Path

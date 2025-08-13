@@ -9,6 +9,12 @@ import tempfile
 import os
 from pathlib import Path
 
+# Fix Unicode output on Windows
+if sys.platform == "win32":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8', errors='replace')
+
 
 def run_command(cmd, description=""):
     """Run a command and return result."""
