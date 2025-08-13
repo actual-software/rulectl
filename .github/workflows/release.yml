@@ -135,9 +135,7 @@ jobs:
       - name: Activate venv and upgrade pip (Windows)
         if: matrix.os == 'windows'
         run: |
-          venv\Scripts\activate
-          python -m pip install --upgrade pip
-          python -m pip install --upgrade wheel setuptools
+          call venv\Scripts\activate && python -m pip install --upgrade pip && python -m pip install --upgrade wheel setuptools
         shell: cmd
 
       - name: Activate venv and upgrade pip (Unix)
@@ -152,19 +150,16 @@ jobs:
         if: matrix.os == 'windows'
         env:
           BAML_LOG: 'OFF'
-          RULES_ENGINE_BUILD: '1'
+          RULECTL_BUILD: '1'
         run: |
-          venv\Scripts\activate
-          python -m pip install --upgrade "typing_extensions>=4.8.0"
-          python -m pip install --upgrade "pydantic>=2.6.0"
-          python -m pip install -r requirements.txt
+          call venv\Scripts\activate && python -m pip install --upgrade "typing_extensions>=4.8.0" && python -m pip install --upgrade "pydantic>=2.6.0" && python -m pip install -r requirements.txt
         shell: cmd
 
       - name: Install dependencies (Unix)
         if: matrix.os != 'windows'
         env:
           BAML_LOG: 'OFF'
-          RULES_ENGINE_BUILD: '1'
+          RULECTL_BUILD: '1'
         run: |
           source venv/bin/activate
           python -m pip install --upgrade "typing_extensions>=4.8.0"
@@ -176,17 +171,16 @@ jobs:
         if: matrix.os == 'windows'
         env:
           BAML_LOG: 'OFF'
-          RULES_ENGINE_BUILD: '1'
+          RULECTL_BUILD: '1'
         run: |
-          venv\Scripts\activate
-          python baml_init.py
+          call venv\Scripts\activate && python baml_init.py
         shell: cmd
 
       - name: Generate BAML client (Unix)
         if: matrix.os != 'windows'
         env:
           BAML_LOG: 'OFF'
-          RULES_ENGINE_BUILD: '1'
+          RULECTL_BUILD: '1'
         run: |
           source venv/bin/activate
           python baml_init.py
@@ -196,17 +190,17 @@ jobs:
         if: matrix.os == 'windows'
         env:
           BAML_LOG: 'OFF'
-          RULES_ENGINE_BUILD: '1'
+          RULECTL_BUILD: '1'
+          BUILD_DEBUG: '1'
         run: |
-          venv\Scripts\activate
-          python build.py
+          call venv\Scripts\activate && python build.py
         shell: cmd
 
       - name: Build executable (Unix)
         if: matrix.os != 'windows'
         env:
           BAML_LOG: 'OFF'
-          RULES_ENGINE_BUILD: '1'
+          RULECTL_BUILD: '1'
         run: |
           source venv/bin/activate
           python build.py

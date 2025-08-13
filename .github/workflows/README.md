@@ -89,7 +89,7 @@ For each platform:
 ### Build Environment
 Required environment variables set automatically:
 - `BAML_LOG=OFF`: Disables BAML logging during build
-- `RULES_ENGINE_BUILD=1`: Indicates build mode
+- `RULECTL_BUILD=1`: Indicates build mode
 
 ### Binary Naming Convention
 ```
@@ -133,7 +133,7 @@ pip install -r requirements.txt
 
 # Generate BAML
 export BAML_LOG=OFF
-export RULES_ENGINE_BUILD=1
+export RULECTL_BUILD=1
 python baml_init.py
 
 # Build executable
