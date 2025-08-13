@@ -42,7 +42,7 @@ def main():
     ]
     
     for package in critical_packages:
-        if not run_command(f"{sys.executable} -m pip install --upgrade '{package}'", f"Installing/upgrading {package}"):
+        if not run_command(f'{sys.executable} -m pip install --upgrade "{package}"', f"Installing/upgrading {package}"):
             return False
     
     # Install all requirements
