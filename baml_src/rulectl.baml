@@ -46,7 +46,6 @@ function ReviewSkippedFiles(project_info: string, skipped_files: FileInfo[]) -> 
     - Simple key-value config files
 
     Return:
-    - files_to_analyze: array of file paths that should be analyzed
-    - reasoning: explanation of why these files were selected
+    {{ctx.output_format}}
   "#
 }
