@@ -1,0 +1,218 @@
+name: Prevent Mixed Version and Code Changes
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'version.py'
+
+jobs:
+  check-mixed-changes:
+    name: Check for Mixed Version and Code Changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          # Get all changed files in this PR
+          git fetch origin ${{ github.base_ref }}
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          
+          # Check if version.py is changed
+          VERSION_CHANGED=false
+          if echo "$CHANGED_FILES" | grep -q "^version\.py$"; then
+            VERSION_CHANGED=true
+          fi
+          
+          # Count total changed files
+          TOTAL_FILES=$(echo "$CHANGED_FILES" | wc -l)
+          
+          # Count non-version files (exclude only version.py)
+          NON_VERSION_FILES=$(echo "$CHANGED_FILES" | grep -v "^version\.py$" | wc -l)
+          
+          echo "version_changed=$VERSION_CHANGED" >> $GITHUB_OUTPUT
+          echo "total_files=$TOTAL_FILES" >> $GITHUB_OUTPUT
+          echo "non_version_files=$NON_VERSION_FILES" >> $GITHUB_OUTPUT
+          
+          # Store changed files for later use
+          echo "$CHANGED_FILES" > changed_files.txt
+
+      - name: Check if version actually changed
+        id: version-check
+        if: steps.changed-files.outputs.version_changed == 'true'
+        run: |
+          # Get the version from the PR branch
+          NEW_VERSION=$(grep -E "VERSION\s*=\s*\"[0-9]+\.[0-9]+\.[0-9]+\"" version.py | sed -E 's/.*VERSION\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
+          
+          # Get the version from the base branch
+          git show origin/${{ github.base_ref }}:version.py > base_version.py 2>/dev/null || echo 'VERSION = "0.0.0"' > base_version.py
+          OLD_VERSION=$(grep -E "VERSION\s*=\s*\"[0-9]+\.[0-9]+\.[0-9]+\"" base_version.py | sed -E 's/.*VERSION\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
+          
+          echo "Old version: $OLD_VERSION"
+          echo "New version: $NEW_VERSION"
+          
+          # Check if version actually changed
+          VERSION_ACTUALLY_CHANGED=false
+          if [ "$NEW_VERSION" != "$OLD_VERSION" ]; then
+            VERSION_ACTUALLY_CHANGED=true
+          fi
+          
+          echo "version_actually_changed=$VERSION_ACTUALLY_CHANGED" >> $GITHUB_OUTPUT
+          echo "old_version=$OLD_VERSION" >> $GITHUB_OUTPUT
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Validate changes
+        id: validate
+        run: |
+          VERSION_CHANGED="${{ steps.changed-files.outputs.version_changed }}"
+          VERSION_ACTUALLY_CHANGED="${{ steps.version-check.outputs.version_actually_changed }}"
+          TOTAL_FILES="${{ steps.changed-files.outputs.total_files }}"
+          NON_VERSION_FILES="${{ steps.changed-files.outputs.non_version_files }}"
+          
+          echo "Analysis Results:"
+          echo "- Version file changed: $VERSION_CHANGED"
+          echo "- Version actually changed: $VERSION_ACTUALLY_CHANGED"
+          echo "- Total files changed: $TOTAL_FILES"
+          echo "- Non-version files changed: $NON_VERSION_FILES"
+          
+          # Case 1: Version file is changed and version actually changed
+          if [ "$VERSION_CHANGED" = "true" ] && [ "$VERSION_ACTUALLY_CHANGED" = "true" ]; then
+            if [ "$NON_VERSION_FILES" -gt 0 ]; then
+              echo ""
+              echo "❌ ERROR: This PR contains both version changes and other code changes."
+              echo ""
+              echo "Version changes should be in dedicated PRs only."
+              echo "This PR changes the version from ${{ steps.version-check.outputs.old_version }} to ${{ steps.version-check.outputs.new_version }}"
+              echo "and also modifies $NON_VERSION_FILES other file(s)."
+              echo ""
+              echo "Please:"
+              echo "1. Create a separate PR with only the version bump, OR"
+              echo "2. Remove the version change from this PR"
+              echo ""
+              echo "Changed files (excluding version.py):"
+              cat changed_files.txt | grep -v "^version\.py$" || true
+              exit 1
+            else
+              echo ""
+              echo "✅ This PR contains only version changes. This is allowed."
+              echo "Version: ${{ steps.version-check.outputs.old_version }} → ${{ steps.version-check.outputs.new_version }}"
+              
+              # Store the base commit SHA for release builds
+              BASE_COMMIT=$(git rev-parse origin/${{ github.base_ref }})
+              echo "Storing base commit for release: $BASE_COMMIT"
+              echo "RELEASE_BASE_COMMIT=$BASE_COMMIT" >> release_commit.txt
+              echo "is_release_pr=true" >> $GITHUB_OUTPUT
+
+      - name: Generate release preview comment
+        if: steps.validate.outputs.is_release_pr == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OLD_VERSION="${{ steps.version-check.outputs.old_version }}"
+          NEW_VERSION="${{ steps.version-check.outputs.new_version }}"
+          BASE_COMMIT=$(git rev-parse origin/${{ github.base_ref }})
+          
+          echo "🔍 Generating release preview for v$NEW_VERSION..."
+          
+          # Find the last version tag
+          LAST_TAG=$(git tag -l "v*" | sort -V | tail -n 1)
+          
+          if [ -z "$LAST_TAG" ]; then
+            echo "No previous version tags found, showing all commits from repository start"
+            COMMIT_RANGE="$BASE_COMMIT"
+            LAST_VERSION="(initial release)"
+          else
+            echo "Found last tag: $LAST_TAG"
+            COMMIT_RANGE="$LAST_TAG..$BASE_COMMIT"
+            LAST_VERSION="$LAST_TAG"
+          fi
+          
+          # Get all commits in the range
+          COMMITS=$(git log --pretty=format:"%h|%s|%an|%ad" --date=short $COMMIT_RANGE --no-merges)
+          
+          # Create formatted changelog header
+          echo "# 🚀 Release Preview: v$NEW_VERSION" > release_preview.md
+          echo "" >> release_preview.md
+          echo "## 📋 Release Details" >> release_preview.md
+          echo "- **Previous Version**: $LAST_VERSION" >> release_preview.md
+          echo "- **New Version**: v$NEW_VERSION" >> release_preview.md  
+          echo "- **Release Base Commit**: \`$BASE_COMMIT\`" >> release_preview.md
+          echo "- **Build Source**: Repository state when this PR was opened" >> release_preview.md
+          echo "" >> release_preview.md
+          echo "> ⚠️ **Important**: This release will build from commit \`$BASE_COMMIT\` and will NOT include any commits made to main after this PR was opened." >> release_preview.md
+          echo "" >> release_preview.md
+          echo "## 📝 Changes Included in This Release" >> release_preview.md
+          echo "" >> release_preview.md
+          
+          if [ -z "$COMMITS" ]; then
+            echo "- No changes since last release" >> release_preview.md
+          else
+            # Categorize commits
+            echo "### 🚀 Features & Enhancements" >> release_preview.md
+            echo "$COMMITS" | grep -iE "(feat|add|new|enhance|improve)" | while IFS='|' read -r hash subject author date; do
+              echo "- **$subject** (*$author*, $date) [\\\`$hash\\\`]" >> release_preview.md
+            done || echo "- No new features" >> release_preview.md
+            
+            echo "" >> release_preview.md
+            echo "### 🐛 Bug Fixes" >> release_preview.md
+            echo "$COMMITS" | grep -iE "(fix|bug|patch|resolve)" | while IFS='|' read -r hash subject author date; do
+              echo "- **$subject** (*$author*, $date) [\\\`$hash\\\`]" >> release_preview.md
+            done || echo "- No bug fixes" >> release_preview.md
+            
+            echo "" >> release_preview.md
+            echo "### 🔧 Other Changes" >> release_preview.md
+            echo "$COMMITS" | grep -viE "(feat|add|new|enhance|improve|fix|bug|patch|resolve|merge)" | while IFS='|' read -r hash subject author date; do
+              echo "- **$subject** (*$author*, $date) [\\\`$hash\\\`]" >> release_preview.md
+            done || echo "- No other changes" >> release_preview.md
+            
+            echo "" >> release_preview.md
+            echo "### 📊 Summary" >> release_preview.md
+            TOTAL_COMMITS=$(echo "$COMMITS" | wc -l)
+            echo "- **Total commits**: $TOTAL_COMMITS" >> release_preview.md
+            echo "- **Contributors**: $(echo "$COMMITS" | cut -d'|' -f3 | sort -u | wc -l)" >> release_preview.md
+          fi
+          
+          echo "" >> release_preview.md
+          echo "## 🎯 Next Steps" >> release_preview.md
+          echo "1. ✅ Review the changes above" >> release_preview.md
+          echo "2. ✅ Merge this PR to trigger the release build" >> release_preview.md
+          echo "3. ✅ Release will be created automatically with binaries for all platforms" >> release_preview.md
+          echo "" >> release_preview.md
+          echo "---" >> release_preview.md
+          echo "*This release preview was automatically generated when the version bump PR was created.*" >> release_preview.md
+          
+          # Post the comment
+          gh api repos/${{ github.repository }}/issues/${{ github.event.number }}/comments \
+            --method POST \
+            --field body="$(cat release_preview.md)"
+          
+          echo "✅ Release preview comment posted to PR"
+          
+          # Case 2: Version file is changed but version didn't actually change (e.g., formatting)
+          if [ "$VERSION_CHANGED" = "true" ] && [ "$VERSION_ACTUALLY_CHANGED" = "false" ]; then
+            echo ""
+            echo "ℹ️ The version.py file was modified but the version number didn't change."
+            echo "This is acceptable as long as it's just formatting or comments."
+          fi
+          
+          # Case 3: No version changes - this is fine
+          if [ "$VERSION_CHANGED" = "false" ]; then
+            echo ""
+            echo "✅ No version changes detected. This PR is allowed to proceed."
+          fi
+
+
+      - name: Success summary
+        if: success()
+        run: |
+          echo ""
+          echo "✅ PR validation passed!"
+          echo "This PR can be merged safely."
