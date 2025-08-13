@@ -95,8 +95,7 @@ def build_executable():
             result = subprocess.run(args, check=True)
         else:
             # Run PyInstaller and capture output with proper encoding
-            encoding = 'utf-8' if sys.platform != "win32" else 'utf-8'
-            result = subprocess.run(args, capture_output=True, text=True, encoding=encoding, errors='replace')
+            result = subprocess.run(args, capture_output=True, text=True, encoding='utf-8', errors='replace')
             
             # Check for actual failure (don't rely only on exceptions)
             if result.returncode != 0:
