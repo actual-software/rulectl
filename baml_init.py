@@ -81,7 +81,7 @@ def generate_baml(verbose=True):
             )
         
         if verbose and not debug_mode:
-            print("  ✅ BAML client generated")
+            print("  [OK] BAML client generated")  # Note: avoid emojis - they cause Windows build issues with charmap codec
         elif verbose:
             print("BAML initialization completed successfully!")
         return True
