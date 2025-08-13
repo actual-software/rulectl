@@ -106,12 +106,16 @@ jobs:
           echo "Binary test with Unicode output passed!"
         shell: cmd
 
-      - name: Test Unicode output in test_cli.py (if exists)
-        if: hashFiles('test_cli.py') != ''
+      - name: Additional binary tests
         run: |
-          call venv\Scripts\activate && python test_cli.py
+          echo "Testing binary config command (may contain Unicode)..."
+          dist\${{ matrix.binary_name }} config --help
+          if %ERRORLEVEL% NEQ 0 (
+            echo "Config command test failed!"
+            exit 1
+          )
+          echo "Config command test passed!"
         shell: cmd
-        continue-on-error: true
 
       - name: Unicode fix validation summary
         run: |
