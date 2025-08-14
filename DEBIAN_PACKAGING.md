@@ -24,14 +24,14 @@ Rulectl now supports building and distributing `.deb` packages for Debian and Ub
 
 ## Files Added
 
-### Debian Packaging Configuration (`debian/` directory)
+### Debian Packaging Configuration (`.github/build/debian/` directory)
 
-- `debian/control` - Package metadata and dependencies
-- `debian/changelog` - Package version history
-- `debian/compat` - Debhelper compatibility level (13)
-- `debian/copyright` - License information
-- `debian/rules` - Build rules and instructions
-- `debian/install` - File installation mappings
+- `.github/build/debian/control` - Package metadata and dependencies
+- `.github/build/debian/changelog` - Package version history
+- `.github/build/debian/compat` - Debhelper compatibility level (13)
+- `.github/build/debian/copyright` - License information
+- `.github/build/debian/rules` - Build rules and instructions
+- `.github/build/debian/install` - File installation mappings
 
 ### Build System
 
@@ -185,12 +185,15 @@ A: Run `make deb-deps` first to install Debian packaging tools
 **Q: Build fails on macOS**
 A: .deb packages can only be built on Debian/Ubuntu systems. Use Docker or CI for building.
 
+**Q: "Error: .github/build/debian/ directory not found"**
+A: Ensure you have all the Debian packaging files in the correct location under `.github/build/debian/`
+
 ## Contributing
 
 When contributing to the Debian packaging:
 
 1. Test changes with `./scripts/test-deb-build.sh`
-2. Update `debian/changelog` for version changes
+2. Update `.github/build/debian/changelog` for version changes
 3. Follow Debian packaging best practices
 4. Test installation/uninstallation process
 5. Update documentation as needed

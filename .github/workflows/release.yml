@@ -325,7 +325,7 @@ jobs:
           TIMESTAMP=$(date -R)
           
           # Create a new changelog entry
-          cat > debian/changelog.new << EOF
+          cat > .github/build/debian/changelog.new << EOF
           rulectl ($VERSION-1) unstable; urgency=medium
 
             * Release version $VERSION
@@ -338,18 +338,22 @@ jobs:
           EOF
           
           # Append existing changelog if it exists
-          if [ -f debian/changelog ]; then
-            cat debian/changelog >> debian/changelog.new
+          if [ -f .github/build/debian/changelog ]; then
+            cat .github/build/debian/changelog >> .github/build/debian/changelog.new
           fi
           
-          mv debian/changelog.new debian/changelog
+          mv .github/build/debian/changelog.new .github/build/debian/changelog
 
       - name: Build Debian package
         env:
           BAML_LOG: 'OFF'
           RULECTL_BUILD: '1'
         run: |
+          # Copy debian config to root for dpkg-buildpackage
+          cp -r .github/build/debian .
           dpkg-buildpackage -us -uc -b
+          # Clean up copied debian directory  
+          rm -rf debian
 
       - name: List built packages
         run: |

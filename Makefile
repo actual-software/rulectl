@@ -16,18 +16,26 @@ build-binary: ## Build the standalone executable
 
 build-deb: deb-deps ## Build Debian package
 	@echo "Building Debian package for rulectl $(VERSION)..."
-	@if [ ! -d "debian" ]; then \
-		echo "Error: debian/ directory not found. Please ensure Debian packaging files exist."; \
+	@if [ ! -d ".github/build/debian" ]; then \
+		echo "Error: .github/build/debian/ directory not found. Please ensure Debian packaging files exist."; \
 		exit 1; \
 	fi
+	# Copy debian config to root for dpkg-buildpackage
+	cp -r .github/build/debian .
 	dpkg-buildpackage -us -uc -b
+	# Clean up copied debian directory
+	rm -rf debian
 	@echo "✅ Debian package built successfully!"
 	@echo "Package files:"
 	@ls -la ../*.deb 2>/dev/null || echo "No .deb files found in parent directory"
 
 build-deb-source: deb-deps ## Build Debian source package
 	@echo "Building Debian source package for rulectl $(VERSION)..."
+	# Copy debian config to root for dpkg-buildpackage
+	cp -r .github/build/debian .
 	dpkg-buildpackage -us -uc -S
+	# Clean up copied debian directory
+	rm -rf debian
 	@echo "✅ Debian source package built successfully!"
 
 deb-deps: ## Install Debian packaging dependencies

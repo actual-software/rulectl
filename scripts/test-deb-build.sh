@@ -34,12 +34,12 @@ echo "🧪 Testing binary functionality..."
 echo ""
 echo "📦 Testing Debian packaging files..."
 required_files=(
-    "debian/control"
-    "debian/changelog" 
-    "debian/compat"
-    "debian/copyright"
-    "debian/rules"
-    "debian/install"
+    ".github/build/debian/control"
+    ".github/build/debian/changelog" 
+    ".github/build/debian/compat"
+    ".github/build/debian/copyright"
+    ".github/build/debian/rules"
+    ".github/build/debian/install"
 )
 
 for file in "${required_files[@]}"; do
@@ -52,10 +52,10 @@ for file in "${required_files[@]}"; do
 done
 
 # Test debian/rules is executable
-if [[ -x "debian/rules" ]]; then
-    echo "✅ debian/rules is executable"
+if [[ -x ".github/build/debian/rules" ]]; then
+    echo "✅ .github/build/debian/rules is executable"
 else
-    echo "❌ debian/rules is not executable"
+    echo "❌ .github/build/debian/rules is not executable"
     exit 1
 fi
 

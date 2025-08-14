@@ -1,8 +1,0 @@
-rulectl (0.1.3-1) unstable; urgency=medium
-
-  * Initial Debian package release
-  * Command-line tool for managing AI generated rules in Git repositories
-  * Features smart rate limiting and batch processing
-  * Self-contained executable with no Python runtime dependencies
-
- -- Rulectl Team <info@rulectl.com>  Wed, 14 Aug 2025 12:00:00 +0000
