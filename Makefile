@@ -40,22 +40,15 @@ build-deb-source: deb-deps ## Build Debian source package
 
 deb-deps: ## Install Debian packaging dependencies
 	@echo "Installing Debian packaging dependencies..."
-	@if ! command -v dpkg-buildpackage >/dev/null 2>&1; then \
-		echo "Installing dpkg-dev..."; \
-		sudo apt-get update && sudo apt-get install -y dpkg-dev; \
-	fi
-	@if ! command -v debuild >/dev/null 2>&1; then \
-		echo "Installing devscripts..."; \
-		sudo apt-get install -y devscripts; \
-	fi
-	@if ! dpkg -l | grep -q debhelper; then \
-		echo "Installing debhelper..."; \
-		sudo apt-get install -y debhelper; \
-	fi
-	@if ! dpkg -l | grep -q dh-python; then \
-		echo "Installing dh-python..."; \
-		sudo apt-get install -y dh-python; \
-	fi
+	sudo apt-get update
+	sudo apt-get install -y \
+		build-essential \
+		dpkg-dev \
+		debhelper \
+		devscripts \
+		dh-python \
+		python3-all \
+		python3-dev
 	@echo "✅ All Debian packaging dependencies installed"
 
 clean: ## Clean build artifacts
