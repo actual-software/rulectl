@@ -141,20 +141,19 @@ The `.deb` package building is fully integrated into the existing GitHub Actions
 ### Package Building Process
 
 1. **Environment Setup**: Install Python 3.11 and Debian packaging tools
-2. **Changelog Update**: Generate debian/changelog with current version and GitHub release link
-3. **Dependency Installation**: Use `fix_dependencies.py` to install Python deps
-4. **BAML Client Generation**: Generate API client code with `baml_init.py`
-5. **Binary Building**: Create standalone executable with PyInstaller via `build.py`
-6. **Package Creation**: Use `dpkg-buildpackage` to create the .deb package
-7. **Artifact Upload**: Upload to GitHub Actions artifacts and releases
+2. **Dependency Installation**: Use `fix_dependencies.py` to install Python deps
+3. **BAML Client Generation**: Generate API client code with `baml_init.py`
+4. **Binary Building**: Create standalone executable with PyInstaller via `build.py`
+5. **Package Creation**: Use `dpkg-buildpackage` to create the .deb package
+6. **Artifact Upload**: Upload to GitHub Actions artifacts and releases
 
 ### Package Versioning
 
-- **Upstream version**: Matches the project version (e.g., `0.1.3`)
-- **Debian revision**: Always `-1` (first build of each upstream version)
-- **Final package**: `rulectl_0.1.3-1_amd64.deb`
+The .deb package version is determined by `dpkg-buildpackage` based on the static debian/changelog file. The actual software version is reflected in the binary itself and GitHub releases provide the canonical changelog.
 
-The debian/changelog is automatically generated and points to GitHub releases for detailed change information, avoiding sync issues between multiple changelog formats.
+### Debian Changelog
+
+The debian/changelog file is minimal and static - it's required by Debian packaging standards but is not maintained or updated. Users should refer to GitHub releases for actual change information.
 
 ### Binary Characteristics
 
@@ -202,10 +201,10 @@ A: Ensure you have all the Debian packaging files in the correct location under 
 When contributing to the Debian packaging:
 
 1. Test changes with `./scripts/test-deb-build.sh`
-2. Update `.github/build/debian/changelog` for version changes
-3. Follow Debian packaging best practices
-4. Test installation/uninstallation process
-5. Update documentation as needed
+2. Follow Debian packaging best practices
+3. Test installation/uninstallation process
+4. Update documentation as needed
+5. Do not update debian/changelog - it's static and minimal
 
 ## References
 

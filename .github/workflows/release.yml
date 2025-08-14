@@ -319,22 +319,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y dpkg-dev debhelper devscripts dh-python
 
-      - name: Update debian/changelog with current version
-        run: |
-          VERSION="${{ needs.detect-version-change.outputs.new_version }}"
-          TIMESTAMP=$(date -R)
-          
-          # Create a new changelog entry
-          # The "-1" suffix is the Debian package revision (first build of this upstream version)
-          cat > .github/build/debian/changelog << EOF
-          rulectl ($VERSION-1) unstable; urgency=medium
-
-            * Release version $VERSION
-            * See GitHub releases for detailed changelog: https://github.com/actual-software/rulectl/releases/tag/v$VERSION
-
-           -- Rulectl Team <info@rulectl.com>  $TIMESTAMP
-          EOF
-
       - name: Build Debian package
         env:
           BAML_LOG: 'OFF'
