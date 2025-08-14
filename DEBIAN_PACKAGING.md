@@ -26,13 +26,13 @@ Rulectl now supports building and distributing `.deb` packages for Debian and Ub
 
 ### Debian Packaging Configuration (`.github/build/debian/` directory)
 
-- `.github/build/debian/control` - Package metadata and dependencies
-- `.github/build/debian/compat` - Debhelper compatibility level (13)
+- `.github/build/debian/control` - Package metadata and dependencies (includes debhelper compat level)
 - `.github/build/debian/copyright` - License information
 - `.github/build/debian/rules` - Build rules and instructions
 - `.github/build/debian/install` - File installation mappings
 
 Note: `changelog` is generated dynamically by CI and not stored in git.
+Note: Debhelper compatibility level is specified in `control` file, no separate `compat` file needed.
 
 ### Build System
 
