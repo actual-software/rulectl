@@ -198,6 +198,12 @@ jobs:
             --field body="$(cat release_preview.md)"
           
           echo "✅ Release preview comment posted to PR"
+
+      - name: Handle other cases  
+        if: steps.validate.outputs.is_release_pr != 'true'
+        run: |
+          VERSION_CHANGED="${{ steps.changed-files.outputs.version_changed }}"
+          VERSION_ACTUALLY_CHANGED="${{ steps.version-check.outputs.version_actually_changed }}"
           
           # Case 2: Version file is changed but version didn't actually change (e.g., formatting)
           if [ "$VERSION_CHANGED" = "true" ] && [ "$VERSION_ACTUALLY_CHANGED" = "false" ]; then
