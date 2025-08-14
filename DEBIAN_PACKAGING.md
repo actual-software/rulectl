@@ -17,7 +17,7 @@ Rulectl now supports building and distributing `.deb` packages for Debian and Ub
 ## Package Details
 
 - **Package Name**: `rulectl`
-- **Architecture**: `amd64` (x86_64)
+- **Architecture**: `any` (supports amd64 and arm64)
 - **Section**: `devel` (development tools)
 - **Dependencies**: Only system libraries (no Python runtime required)
 - **Installation Path**: `/usr/bin/rulectl`
@@ -49,11 +49,13 @@ Rulectl now supports building and distributing `.deb` packages for Debian and Ub
 
 #### Installation via .deb Package
 ```bash
-# Download the latest .deb package
+# For x86_64 (Intel/AMD) systems:
 wget https://github.com/actual-software/rulectl/releases/latest/download/rulectl_*_amd64.deb
-
-# Install the package
 sudo dpkg -i rulectl_*_amd64.deb
+
+# For ARM64 (Apple Silicon, Raspberry Pi, etc.) systems:
+wget https://github.com/actual-software/rulectl/releases/latest/download/rulectl_*_arm64.deb
+sudo dpkg -i rulectl_*_arm64.deb
 
 # Fix dependencies if needed
 sudo apt-get install -f
@@ -159,7 +161,7 @@ The debian/changelog file is minimal and static - it's required by Debian packag
 
 - **Size**: ~40MB (includes all Python dependencies)
 - **Dependencies**: Only system libraries (libc, etc.)
-- **Architecture**: x86_64 (amd64)
+- **Architecture**: amd64 (x86_64) and arm64 (aarch64)
 - **Compatibility**: Debian 10+, Ubuntu 18.04+
 
 ## Roadmap
@@ -167,7 +169,7 @@ The debian/changelog file is minimal and static - it's required by Debian packag
 Future enhancements to consider:
 
 - [ ] **APT Repository**: Set up a custom APT repository for easier installation
-- [ ] **ARM64 Support**: Add aarch64/arm64 .deb packages
+- [x] **ARM64 Support**: Add aarch64/arm64 .deb packages
 - [ ] **Multiple Distros**: Support for different Debian/Ubuntu versions
 - [ ] **GPG Signing**: Sign packages for enhanced security
 - [ ] **Automatic Updates**: Integration with system update mechanisms

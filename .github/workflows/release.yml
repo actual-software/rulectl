@@ -298,11 +298,21 @@ jobs:
           path: dist/${{ matrix.artifact_name }}
           retention-days: 1
 
-  build-deb-package:
-    name: Build Debian Package
+  build-deb-packages:
+    name: Build Debian Package ${{ matrix.arch }}
     needs: detect-version-change
     if: needs.detect-version-change.outputs.version_changed == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+            debian_arch: amd64
+          - arch: arm64  
+            runner: ubuntu-24.04-arm
+            debian_arch: arm64
     steps:
       - name: Checkout code from base commit
         uses: actions/checkout@v4
@@ -326,7 +336,7 @@ jobs:
         run: |
           # Copy debian config to root for dpkg-buildpackage
           cp -r .github/build/debian .
-          dpkg-buildpackage -us -uc -b
+          dpkg-buildpackage -us -uc -b --host-arch=${{ matrix.debian_arch }}
           # Clean up copied debian directory  
           rm -rf debian
 
@@ -339,13 +349,13 @@ jobs:
       - name: Upload Debian package artifact
         uses: actions/upload-artifact@v4
         with:
-          name: debian-package
+          name: debian-package-${{ matrix.arch }}
           path: ../*.deb
           retention-days: 1
 
   create-release:
     name: Create Release
-    needs: [detect-version-change, build-binaries, build-deb-package]
+    needs: [detect-version-change, build-binaries, build-deb-packages]
     if: needs.detect-version-change.outputs.version_changed == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -374,7 +384,7 @@ jobs:
           # Move all binaries to release-assets directory
           find artifacts -type f -name "rulectl*" -exec cp {} release-assets/ \;
           
-          # Copy Debian package
+          # Copy Debian packages
           find artifacts -name "*.deb" -exec cp {} release-assets/ \;
           
           # List final assets
@@ -404,6 +414,7 @@ jobs:
           | Linux | x86_64 | \`rulectl-linux-x86_64-v${VERSION}\` |
           | Linux | aarch64 | \`rulectl-linux-aarch64-v${VERSION}\` |
           | **Debian/Ubuntu** | x86_64 | \`rulectl_${VERSION}-1_amd64.deb\` |
+          | **Debian/Ubuntu** | aarch64 | \`rulectl_${VERSION}-1_arm64.deb\` |
           
           ### 🚀 Installation
           

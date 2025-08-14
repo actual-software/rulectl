@@ -9,7 +9,7 @@ Vcs-Git: https://github.com/actual-software/rulectl.git
 Vcs-Browser: https://github.com/actual-software/rulectl
 
 Package: rulectl
-Architecture: amd64
+Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Command-line tool for managing AI generated rules in Git repositories
  Rulectl is a simple command-line tool for managing AI generated rules in Git repositories.
