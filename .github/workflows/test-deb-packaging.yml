@@ -72,14 +72,16 @@ jobs:
       - name: Build Debian package
         run: |
           dpkg-buildpackage -us -uc -b --host-arch=${{ matrix.debian_arch }}
+          # Move .deb files to current directory for easier artifact upload
+          mv ../*.deb . || echo "No .deb files to move"
 
       - name: List and verify built packages
         run: |
           echo "Built packages:"
-          ls -la ../*.deb || echo "No .deb files found"
+          ls -la *.deb || echo "No .deb files found"
           
           # Verify package info
-          for deb in ../*.deb; do
+          for deb in *.deb; do
             if [ -f "$deb" ]; then
               echo "Package info for $deb:"
               dpkg -I "$deb"
@@ -92,7 +94,7 @@ jobs:
       - name: Test package installation (in container to avoid system changes)
         run: |
           # Create a test container environment
-          for deb in ../*.deb; do
+          for deb in *.deb; do
             if [ -f "$deb" ]; then
               echo "Testing installation of $deb"
               # Test that dpkg can read the package without installing
@@ -107,7 +109,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-deb-package-${{ matrix.arch }}
-          path: ../*.deb
+          path: "*.deb"
           retention-days: 7
 
   summary:
