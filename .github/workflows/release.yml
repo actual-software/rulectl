@@ -1,7 +1,8 @@
 name: Build and Release
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches: [main]
     paths:
       - 'version.py'
@@ -10,26 +11,39 @@ jobs:
   detect-version-change:
     name: Detect Version Change
     runs-on: ubuntu-latest
+    # Only run if PR was actually merged (not just closed without merging)
+    if: github.event.pull_request.merged == true
     outputs:
       version_changed: ${{ steps.check.outputs.version_changed }}
       new_version: ${{ steps.check.outputs.new_version }}
       old_version: ${{ steps.check.outputs.old_version }}
+      release_base_commit: ${{ steps.get-base-commit.outputs.base_commit }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
+
+      - name: Get release base commit
+        id: get-base-commit
+        run: |
+          # Get the base commit from when the PR was opened
+          # This is the commit we want to build the release from
+          BASE_COMMIT="${{ github.event.pull_request.base.sha }}"
+          echo "Release will be built from base commit: $BASE_COMMIT"
+          echo "base_commit=$BASE_COMMIT" >> $GITHUB_OUTPUT
 
       - name: Check for version change
         id: check
         run: |
-          # Extract version from current commit
+          # Extract version from the merged PR
           NEW_VERSION=$(grep -E "VERSION\s*=\s*\"[0-9]+\.[0-9]+\.[0-9]+\"" version.py | sed -E 's/.*VERSION\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
           echo "New version: $NEW_VERSION"
           
-          # Extract version from previous commit
-          OLD_VERSION=$(git show HEAD~1:version.py 2>/dev/null | grep -E "VERSION\s*=\s*\"[0-9]+\.[0-9]+\.[0-9]+\"" | sed -E 's/.*VERSION\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/' || echo "0.0.0")
-          echo "Old version: $OLD_VERSION"
+          # Extract version from the base commit (when PR was opened)
+          BASE_COMMIT="${{ steps.get-base-commit.outputs.base_commit }}"
+          OLD_VERSION=$(git show $BASE_COMMIT:version.py 2>/dev/null | grep -E "VERSION\s*=\s*\"[0-9]+\.[0-9]+\.[0-9]+\"" | sed -E 's/.*VERSION\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/' || echo "0.0.0")
+          echo "Old version (from base commit): $OLD_VERSION"
           
           # Set outputs
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
@@ -53,6 +67,8 @@ jobs:
         run: |
           if [[ "${{ steps.check.outputs.version_changed }}" == "true" ]]; then
             echo "✅ Version increased from ${{ steps.check.outputs.old_version }} to ${{ steps.check.outputs.new_version }}"
+            echo "🏷️ Release will be built from base commit: ${{ steps.get-base-commit.outputs.base_commit }}"
+            echo "📦 This ensures the release contains ONLY the state of main when the version bump PR was opened"
             echo "Build and release will proceed."
           else
             echo "ℹ️ No version increase detected (current: ${{ steps.check.outputs.new_version }})"
@@ -118,8 +134,10 @@ jobs:
             python_arch: arm64
 
     steps:
-      - name: Checkout code
+      - name: Checkout code from base commit
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.detect-version-change.outputs.release_base_commit }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -288,9 +306,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Checkout code
+      - name: Checkout code from base commit
         uses: actions/checkout@v4
         with:
+          ref: ${{ needs.detect-version-change.outputs.release_base_commit }}
           fetch-depth: 50
 
       - name: Download all artifacts
