@@ -329,7 +329,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y dpkg-dev debhelper devscripts dh-python
 
-      - name: Update changelog version
+      - name: Prepare Debian packaging
         run: |
           VERSION="${{ needs.detect-version-change.outputs.new_version }}"
           TIMESTAMP=$(date -R)
@@ -337,7 +337,7 @@ jobs:
           # Copy debian config to root
           cp -r .github/build/debian .
           
-          # Update changelog with actual version (no Debian revision needed)
+          # Generate changelog for this release
           cat > debian/changelog << EOF
           rulectl ($VERSION) unstable; urgency=medium
 
