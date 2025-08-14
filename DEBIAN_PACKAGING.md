@@ -141,11 +141,20 @@ The `.deb` package building is fully integrated into the existing GitHub Actions
 ### Package Building Process
 
 1. **Environment Setup**: Install Python 3.11 and Debian packaging tools
-2. **Dependency Installation**: Use `fix_dependencies.py` to install Python deps
-3. **BAML Client Generation**: Generate API client code with `baml_init.py`
-4. **Binary Building**: Create standalone executable with PyInstaller via `build.py`
-5. **Package Creation**: Use `dpkg-buildpackage` to create the .deb package
-6. **Artifact Upload**: Upload to GitHub Actions artifacts and releases
+2. **Changelog Update**: Generate debian/changelog with current version and GitHub release link
+3. **Dependency Installation**: Use `fix_dependencies.py` to install Python deps
+4. **BAML Client Generation**: Generate API client code with `baml_init.py`
+5. **Binary Building**: Create standalone executable with PyInstaller via `build.py`
+6. **Package Creation**: Use `dpkg-buildpackage` to create the .deb package
+7. **Artifact Upload**: Upload to GitHub Actions artifacts and releases
+
+### Package Versioning
+
+- **Upstream version**: Matches the project version (e.g., `0.1.3`)
+- **Debian revision**: Always `-1` (first build of each upstream version)
+- **Final package**: `rulectl_0.1.3-1_amd64.deb`
+
+The debian/changelog is automatically generated and points to GitHub releases for detailed change information, avoiding sync issues between multiple changelog formats.
 
 ### Binary Characteristics
 

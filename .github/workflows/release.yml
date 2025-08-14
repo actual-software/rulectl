@@ -325,24 +325,15 @@ jobs:
           TIMESTAMP=$(date -R)
           
           # Create a new changelog entry
-          cat > .github/build/debian/changelog.new << EOF
+          # The "-1" suffix is the Debian package revision (first build of this upstream version)
+          cat > .github/build/debian/changelog << EOF
           rulectl ($VERSION-1) unstable; urgency=medium
 
             * Release version $VERSION
-            * Command-line tool for managing AI generated rules in Git repositories
-            * Features smart rate limiting and batch processing
-            * Self-contained executable with no Python runtime dependencies
+            * See GitHub releases for detailed changelog: https://github.com/actual-software/rulectl/releases/tag/v$VERSION
 
            -- Rulectl Team <info@rulectl.com>  $TIMESTAMP
-
           EOF
-          
-          # Append existing changelog if it exists
-          if [ -f .github/build/debian/changelog ]; then
-            cat .github/build/debian/changelog >> .github/build/debian/changelog.new
-          fi
-          
-          mv .github/build/debian/changelog.new .github/build/debian/changelog
 
       - name: Build Debian package
         env:
