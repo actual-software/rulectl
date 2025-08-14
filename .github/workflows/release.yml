@@ -359,20 +359,22 @@ jobs:
           RULECTL_BUILD: '1'
         run: |
           dpkg-buildpackage -us -uc -b --host-arch=${{ matrix.debian_arch }}
+          # Move .deb files to current directory for easier artifact upload
+          mv ../*.deb . || echo "No .deb files to move"
           # Clean up copied debian directory  
           rm -rf debian
 
       - name: List built packages
         run: |
           echo "Built packages:"
-          ls -la ../*.deb || echo "No .deb files found"
+          ls -la *.deb || echo "No .deb files found"
           ls -la ../*.changes || echo "No .changes files found"
 
       - name: Upload Debian package artifact
         uses: actions/upload-artifact@v4
         with:
           name: debian-package-${{ matrix.arch }}
-          path: ../*.deb
+          path: "*.deb"
           retention-days: 1
 
   create-release:
