@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     # Only run if PR was actually merged (not just closed without merging)
     if: github.event.pull_request.merged == true
+    permissions:
+      contents: read
     outputs:
       version_changed: ${{ steps.check.outputs.version_changed }}
       new_version: ${{ steps.check.outputs.new_version }}
@@ -80,6 +82,9 @@ jobs:
     needs: detect-version-change
     if: needs.detect-version-change.outputs.version_changed == 'true'
     runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      actions: write
     strategy:
       fail-fast: false
       matrix:
@@ -303,6 +308,9 @@ jobs:
     needs: detect-version-change
     if: needs.detect-version-change.outputs.version_changed == 'true'
     runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      actions: write
     strategy:
       fail-fast: false
       matrix:
@@ -512,3 +520,68 @@ jobs:
           echo "2. Review the release notes and binaries"
           echo "3. Click 'Edit' on the draft release"
           echo "4. Click 'Publish release' when ready"
+
+  update-homebrew-tap:
+    name: Update Homebrew Tap
+    needs: [detect-version-change, create-release]
+    if: needs.detect-version-change.outputs.version_changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Wait for release assets to be available
+        run: sleep 30
+
+      - name: Calculate SHA256 hashes for macOS binaries
+        id: hashes
+        env:
+          VERSION: ${{ needs.detect-version-change.outputs.new_version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Downloading macOS binaries to calculate SHA256 hashes..."
+          
+          # Download macOS binaries from the release
+          gh release download "v${VERSION}" \
+            --repo "${{ github.repository }}" \
+            --pattern "*darwin*" \
+            --dir ./temp-binaries
+          
+          # Calculate SHA256 hashes
+          cd temp-binaries
+          ls -la
+          
+          INTEL_FILE=$(ls rulectl-darwin-x86_64-* | head -1)
+          ARM_FILE=$(ls rulectl-darwin-aarch64-* | head -1)
+          
+          if [ -f "$INTEL_FILE" ]; then
+            INTEL_SHA=$(sha256sum "$INTEL_FILE" | cut -d' ' -f1)
+            echo "Intel SHA256: $INTEL_SHA"
+            echo "intel_sha=$INTEL_SHA" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Intel binary not found"
+            exit 1
+          fi
+          
+          if [ -f "$ARM_FILE" ]; then
+            ARM_SHA=$(sha256sum "$ARM_FILE" | cut -d' ' -f1)
+            echo "ARM SHA256: $ARM_SHA"
+            echo "arm_sha=$ARM_SHA" >> $GITHUB_OUTPUT
+          else
+            echo "❌ ARM binary not found"
+            exit 1
+          fi
+
+      - name: Trigger Homebrew tap update
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          repository: actual-software/homebrew-tap
+          event-type: new-release
+          client-payload: |
+            {
+              "version": "${{ needs.detect-version-change.outputs.new_version }}",
+              "intel_sha": "${{ steps.hashes.outputs.intel_sha }}",
+              "arm_sha": "${{ steps.hashes.outputs.arm_sha }}",
+              "release_url": "https://github.com/${{ github.repository }}/releases/tag/v${{ needs.detect-version-change.outputs.new_version }}"
+            }
