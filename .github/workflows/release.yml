@@ -329,13 +329,28 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y dpkg-dev debhelper devscripts dh-python
 
+      - name: Update changelog version
+        run: |
+          VERSION="${{ needs.detect-version-change.outputs.new_version }}"
+          TIMESTAMP=$(date -R)
+          
+          # Copy debian config to root
+          cp -r .github/build/debian .
+          
+          # Update changelog with actual version (no Debian revision needed)
+          cat > debian/changelog << EOF
+          rulectl ($VERSION) unstable; urgency=medium
+
+            * Release version $VERSION
+
+           -- Rulectl Team <info@rulectl.com>  $TIMESTAMP
+          EOF
+
       - name: Build Debian package
         env:
           BAML_LOG: 'OFF'
           RULECTL_BUILD: '1'
         run: |
-          # Copy debian config to root for dpkg-buildpackage
-          cp -r .github/build/debian .
           dpkg-buildpackage -us -uc -b --host-arch=${{ matrix.debian_arch }}
           # Clean up copied debian directory  
           rm -rf debian
@@ -413,8 +428,8 @@ jobs:
           | macOS | aarch64 | \`rulectl-darwin-aarch64-v${VERSION}\` |
           | Linux | x86_64 | \`rulectl-linux-x86_64-v${VERSION}\` |
           | Linux | aarch64 | \`rulectl-linux-aarch64-v${VERSION}\` |
-          | **Debian/Ubuntu** | x86_64 | \`rulectl_${VERSION}-1_amd64.deb\` |
-          | **Debian/Ubuntu** | aarch64 | \`rulectl_${VERSION}-1_arm64.deb\` |
+          | **Debian/Ubuntu** | x86_64 | \`rulectl_${VERSION}_amd64.deb\` |
+          | **Debian/Ubuntu** | aarch64 | \`rulectl_${VERSION}_arm64.deb\` |
           
           ### 🚀 Installation
           
@@ -426,8 +441,8 @@ jobs:
           #### Debian/Ubuntu Installation
           \`\`\`bash
           # Download and install the .deb package
-          wget https://github.com/actual-software/rulectl/releases/download/v${VERSION}/rulectl_${VERSION}-1_amd64.deb
-          sudo dpkg -i rulectl_${VERSION}-1_amd64.deb
+          wget https://github.com/actual-software/rulectl/releases/download/v${VERSION}/rulectl_${VERSION}_amd64.deb
+          sudo dpkg -i rulectl_${VERSION}_amd64.deb
           
           # If dependencies are missing, fix them with:
           sudo apt-get install -f

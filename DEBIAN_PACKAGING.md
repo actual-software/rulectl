@@ -151,11 +151,20 @@ The `.deb` package building is fully integrated into the existing GitHub Actions
 
 ### Package Versioning
 
-The .deb package version is determined by `dpkg-buildpackage` based on the static debian/changelog file. The actual software version is reflected in the binary itself and GitHub releases provide the canonical changelog.
+Debian packages use the format: `packagename_VERSION_ARCHITECTURE.deb`
+
+- **VERSION**: The software version (e.g., `0.1.3`) 
+- **ARCHITECTURE**: Target architecture (`amd64`, `arm64`)
+
+Examples:
+- `rulectl_0.1.3_amd64.deb` (version 0.1.3, x86_64)
+- `rulectl_0.1.4_arm64.deb` (version 0.1.4, ARM64)
+
+We use simple versioning without Debian revisions since we're the upstream maintainers and control both the software and packaging.
 
 ### Debian Changelog
 
-The debian/changelog file is minimal and static - it's required by Debian packaging standards but is not maintained or updated. Users should refer to GitHub releases for actual change information.
+The debian/changelog file is automatically updated during CI builds to match the release version. The template in git is static, but gets replaced with the actual version during package building.
 
 ### Binary Characteristics
 
