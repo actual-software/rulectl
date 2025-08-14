@@ -86,6 +86,23 @@ Both methods will:
 - ✅ Verify installation works correctly
 - ✅ Clean up temporary files
 
+### Debian/Ubuntu Installation
+
+For Debian and Ubuntu users, you can install rulectl using a .deb package:
+
+```bash
+# For x86_64 (Intel/AMD) systems:
+wget https://github.com/actual-software/rulectl/releases/latest/download/rulectl_*_amd64.deb
+sudo dpkg -i rulectl_*_amd64.deb
+
+# For ARM64 (Apple Silicon, Raspberry Pi, etc.) systems:
+wget https://github.com/actual-software/rulectl/releases/latest/download/rulectl_*_arm64.deb
+sudo dpkg -i rulectl_*_arm64.deb
+
+# If dependencies are missing, fix them with:
+sudo apt-get install -f
+```
+
 ### Windows Installation
 
 Windows users must build from source:

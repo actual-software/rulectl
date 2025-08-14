@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     # Only run if PR was actually merged (not just closed without merging)
     if: github.event.pull_request.merged == true
+    permissions:
+      contents: read
     outputs:
       version_changed: ${{ steps.check.outputs.version_changed }}
       new_version: ${{ steps.check.outputs.new_version }}
@@ -80,6 +82,9 @@ jobs:
     needs: detect-version-change
     if: needs.detect-version-change.outputs.version_changed == 'true'
     runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      actions: write
     strategy:
       fail-fast: false
       matrix:
@@ -298,9 +303,91 @@ jobs:
           path: dist/${{ matrix.artifact_name }}
           retention-days: 1
 
+  build-deb-packages:
+    name: Build Debian Package ${{ matrix.arch }}
+    needs: detect-version-change
+    if: needs.detect-version-change.outputs.version_changed == 'true'
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      actions: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+            debian_arch: amd64
+          - arch: arm64  
+            runner: ubuntu-24.04-arm
+            debian_arch: arm64
+    steps:
+      - name: Checkout code from base commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.detect-version-change.outputs.release_base_commit }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Debian packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            dpkg-dev \
+            debhelper \
+            devscripts \
+            dh-python \
+            python3-all \
+            python3-dev
+
+      - name: Prepare Debian packaging
+        run: |
+          VERSION="${{ needs.detect-version-change.outputs.new_version }}"
+          TIMESTAMP=$(date -R)
+          
+          # Copy debian config to root
+          cp -r .github/build/debian .
+          
+          # Generate changelog for this release
+          cat > debian/changelog << EOF
+          rulectl ($VERSION) unstable; urgency=medium
+
+            * Release version $VERSION
+
+           -- Rulectl Team <info@rulectl.com>  $TIMESTAMP
+          EOF
+
+      - name: Build Debian package
+        env:
+          BAML_LOG: 'OFF'
+          RULECTL_BUILD: '1'
+        run: |
+          dpkg-buildpackage -us -uc -b --host-arch=${{ matrix.debian_arch }}
+          # Move .deb files to current directory for easier artifact upload
+          mv ../*.deb . || echo "No .deb files to move"
+          # Clean up copied debian directory  
+          rm -rf debian
+
+      - name: List built packages
+        run: |
+          echo "Built packages:"
+          ls -la *.deb || echo "No .deb files found"
+          ls -la ../*.changes || echo "No .changes files found"
+
+      - name: Upload Debian package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-package-${{ matrix.arch }}
+          path: "*.deb"
+          retention-days: 1
+
   create-release:
     name: Create Release
-    needs: [detect-version-change, build-binaries]
+    needs: [detect-version-change, build-binaries, build-deb-packages]
     if: needs.detect-version-change.outputs.version_changed == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -329,6 +416,9 @@ jobs:
           # Move all binaries to release-assets directory
           find artifacts -type f -name "rulectl*" -exec cp {} release-assets/ \;
           
+          # Copy Debian packages
+          find artifacts -name "*.deb" -exec cp {} release-assets/ \;
+          
           # List final assets
           echo "Release assets:"
           ls -la release-assets/
@@ -355,12 +445,24 @@ jobs:
           | macOS | aarch64 | \`rulectl-darwin-aarch64-v${VERSION}\` |
           | Linux | x86_64 | \`rulectl-linux-x86_64-v${VERSION}\` |
           | Linux | aarch64 | \`rulectl-linux-aarch64-v${VERSION}\` |
+          | **Debian/Ubuntu** | x86_64 | \`rulectl_${VERSION}_amd64.deb\` |
+          | **Debian/Ubuntu** | aarch64 | \`rulectl_${VERSION}_arm64.deb\` |
           
           ### 🚀 Installation
           
           #### Quick Install (Unix/Linux/macOS)
           \`\`\`bash
           curl -sSL https://raw.githubusercontent.com/SprintReviewAI/rulectl/main/install.sh | bash
+          \`\`\`
+          
+          #### Debian/Ubuntu Installation
+          \`\`\`bash
+          # Download and install the .deb package
+          wget https://github.com/actual-software/rulectl/releases/download/v${VERSION}/rulectl_${VERSION}_amd64.deb
+          sudo dpkg -i rulectl_${VERSION}_amd64.deb
+          
+          # If dependencies are missing, fix them with:
+          sudo apt-get install -f
           \`\`\`
           
           #### Manual Installation
@@ -405,6 +507,7 @@ jobs:
             release-assets/rulectl-darwin-aarch64-v${{ needs.detect-version-change.outputs.new_version }}
             release-assets/rulectl-linux-x86_64-v${{ needs.detect-version-change.outputs.new_version }}
             release-assets/rulectl-linux-aarch64-v${{ needs.detect-version-change.outputs.new_version }}
+            release-assets/*.deb
           fail_on_unmatched_files: true
           generate_release_notes: false
 
@@ -417,3 +520,68 @@ jobs:
           echo "2. Review the release notes and binaries"
           echo "3. Click 'Edit' on the draft release"
           echo "4. Click 'Publish release' when ready"
+
+  update-homebrew-tap:
+    name: Update Homebrew Tap
+    needs: [detect-version-change, create-release]
+    if: needs.detect-version-change.outputs.version_changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Wait for release assets to be available
+        run: sleep 30
+
+      - name: Calculate SHA256 hashes for macOS binaries
+        id: hashes
+        env:
+          VERSION: ${{ needs.detect-version-change.outputs.new_version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Downloading macOS binaries to calculate SHA256 hashes..."
+          
+          # Download macOS binaries from the release
+          gh release download "v${VERSION}" \
+            --repo "${{ github.repository }}" \
+            --pattern "*darwin*" \
+            --dir ./temp-binaries
+          
+          # Calculate SHA256 hashes
+          cd temp-binaries
+          ls -la
+          
+          INTEL_FILE=$(ls rulectl-darwin-x86_64-* | head -1)
+          ARM_FILE=$(ls rulectl-darwin-aarch64-* | head -1)
+          
+          if [ -f "$INTEL_FILE" ]; then
+            INTEL_SHA=$(sha256sum "$INTEL_FILE" | cut -d' ' -f1)
+            echo "Intel SHA256: $INTEL_SHA"
+            echo "intel_sha=$INTEL_SHA" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Intel binary not found"
+            exit 1
+          fi
+          
+          if [ -f "$ARM_FILE" ]; then
+            ARM_SHA=$(sha256sum "$ARM_FILE" | cut -d' ' -f1)
+            echo "ARM SHA256: $ARM_SHA"
+            echo "arm_sha=$ARM_SHA" >> $GITHUB_OUTPUT
+          else
+            echo "❌ ARM binary not found"
+            exit 1
+          fi
+
+      - name: Trigger Homebrew tap update
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          repository: actual-software/homebrew-tap
+          event-type: new-release
+          client-payload: |
+            {
+              "version": "${{ needs.detect-version-change.outputs.new_version }}",
+              "intel_sha": "${{ steps.hashes.outputs.intel_sha }}",
+              "arm_sha": "${{ steps.hashes.outputs.arm_sha }}",
+              "release_url": "https://github.com/${{ github.repository }}/releases/tag/v${{ needs.detect-version-change.outputs.new_version }}"
+            }

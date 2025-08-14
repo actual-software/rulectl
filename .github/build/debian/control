@@ -1,0 +1,17 @@
+Source: rulectl
+Section: devel
+Priority: optional
+Maintainer: Rulectl Team <info@rulectl.com>
+Build-Depends: debhelper-compat (= 13), dh-python, python3-all, python3-setuptools, python3-pip, python3-venv
+Standards-Version: 4.6.1
+Homepage: https://github.com/actual-software/rulectl
+Vcs-Git: https://github.com/actual-software/rulectl.git
+Vcs-Browser: https://github.com/actual-software/rulectl
+
+Package: rulectl
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Command-line tool for managing AI generated rules in Git repositories
+ Rulectl is a simple command-line tool for managing AI generated rules in Git repositories.
+ It detects Git repositories, creates and analyzes rules files, and includes smart rate
+ limiting and batch processing for efficient API usage.
