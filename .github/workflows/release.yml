@@ -298,9 +298,75 @@ jobs:
           path: dist/${{ matrix.artifact_name }}
           retention-days: 1
 
+  build-deb-package:
+    name: Build Debian Package
+    needs: detect-version-change
+    if: needs.detect-version-change.outputs.version_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code from base commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.detect-version-change.outputs.release_base_commit }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Debian packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev debhelper devscripts dh-python
+
+      - name: Update debian/changelog with current version
+        run: |
+          VERSION="${{ needs.detect-version-change.outputs.new_version }}"
+          TIMESTAMP=$(date -R)
+          
+          # Create a new changelog entry
+          cat > debian/changelog.new << EOF
+          rulectl ($VERSION-1) unstable; urgency=medium
+
+            * Release version $VERSION
+            * Command-line tool for managing AI generated rules in Git repositories
+            * Features smart rate limiting and batch processing
+            * Self-contained executable with no Python runtime dependencies
+
+           -- Rulectl Team <info@rulectl.com>  $TIMESTAMP
+
+          EOF
+          
+          # Append existing changelog if it exists
+          if [ -f debian/changelog ]; then
+            cat debian/changelog >> debian/changelog.new
+          fi
+          
+          mv debian/changelog.new debian/changelog
+
+      - name: Build Debian package
+        env:
+          BAML_LOG: 'OFF'
+          RULECTL_BUILD: '1'
+        run: |
+          dpkg-buildpackage -us -uc -b
+
+      - name: List built packages
+        run: |
+          echo "Built packages:"
+          ls -la ../*.deb || echo "No .deb files found"
+          ls -la ../*.changes || echo "No .changes files found"
+
+      - name: Upload Debian package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-package
+          path: ../*.deb
+          retention-days: 1
+
   create-release:
     name: Create Release
-    needs: [detect-version-change, build-binaries]
+    needs: [detect-version-change, build-binaries, build-deb-package]
     if: needs.detect-version-change.outputs.version_changed == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -329,6 +395,9 @@ jobs:
           # Move all binaries to release-assets directory
           find artifacts -type f -name "rulectl*" -exec cp {} release-assets/ \;
           
+          # Copy Debian package
+          find artifacts -name "*.deb" -exec cp {} release-assets/ \;
+          
           # List final assets
           echo "Release assets:"
           ls -la release-assets/
@@ -355,12 +424,23 @@ jobs:
           | macOS | aarch64 | \`rulectl-darwin-aarch64-v${VERSION}\` |
           | Linux | x86_64 | \`rulectl-linux-x86_64-v${VERSION}\` |
           | Linux | aarch64 | \`rulectl-linux-aarch64-v${VERSION}\` |
+          | **Debian/Ubuntu** | x86_64 | \`rulectl_${VERSION}-1_amd64.deb\` |
           
           ### 🚀 Installation
           
           #### Quick Install (Unix/Linux/macOS)
           \`\`\`bash
           curl -sSL https://raw.githubusercontent.com/SprintReviewAI/rulectl/main/install.sh | bash
+          \`\`\`
+          
+          #### Debian/Ubuntu Installation
+          \`\`\`bash
+          # Download and install the .deb package
+          wget https://github.com/actual-software/rulectl/releases/download/v${VERSION}/rulectl_${VERSION}-1_amd64.deb
+          sudo dpkg -i rulectl_${VERSION}-1_amd64.deb
+          
+          # If dependencies are missing, fix them with:
+          sudo apt-get install -f
           \`\`\`
           
           #### Manual Installation
@@ -405,6 +485,7 @@ jobs:
             release-assets/rulectl-darwin-aarch64-v${{ needs.detect-version-change.outputs.new_version }}
             release-assets/rulectl-linux-x86_64-v${{ needs.detect-version-change.outputs.new_version }}
             release-assets/rulectl-linux-aarch64-v${{ needs.detect-version-change.outputs.new_version }}
+            release-assets/*.deb
           fail_on_unmatched_files: true
           generate_release_notes: false
 
