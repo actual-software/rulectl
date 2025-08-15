@@ -145,56 +145,95 @@ jobs:
           # Get all commits in the range
           COMMITS=$(git log --pretty=format:"%h|%s|%an|%ad" --date=short $COMMIT_RANGE --no-merges)
           
-          # Create formatted changelog header
-          echo "# 🚀 Release Preview: v$NEW_VERSION" > release_preview.md
-          echo "" >> release_preview.md
-          echo "## 📋 Release Details" >> release_preview.md
-          echo "- **Previous Version**: $LAST_VERSION" >> release_preview.md
-          echo "- **New Version**: v$NEW_VERSION" >> release_preview.md  
-          echo "- **Release Base Commit**: \`$BASE_COMMIT\`" >> release_preview.md
-          echo "- **Build Source**: Repository state when this PR was opened" >> release_preview.md
-          echo "" >> release_preview.md
-          echo "> ⚠️ **Important**: This release will build from commit \`$BASE_COMMIT\` and will NOT include any commits made to main after this PR was opened." >> release_preview.md
-          echo "" >> release_preview.md
-          echo "## 📝 Changes Included in This Release" >> release_preview.md
-          echo "" >> release_preview.md
+          # Create perfectly formatted changelog header
+          {
+            echo "# 🚀 Release Preview: v$NEW_VERSION"
+            echo ""
+            echo "## 📋 Release Details"
+            echo ""
+            echo "- **Previous Version**: $LAST_VERSION"
+            echo "- **New Version**: v$NEW_VERSION"
+            echo "- **Release Base Commit**: \`$BASE_COMMIT\`"
+            echo "- **Build Source**: Repository state when this PR was opened"
+            echo ""
+            echo "> ⚠️ **Important**: This release will build from commit \`$BASE_COMMIT\` and will NOT include any commits made to main after this PR was opened."
+            echo ""
+            echo "## 📝 Changes Included in This Release"
+            echo ""
+          } > release_preview.md
           
           if [ -z "$COMMITS" ]; then
             echo "- No changes since last release" >> release_preview.md
           else
-            # Categorize commits
+            # Create temporary files for categorization
+            echo "$COMMITS" > all_commits.tmp
+            
+            # Categorize commits without duplication - show all commits properly organized
             echo "### 🚀 Features & Enhancements" >> release_preview.md
-            echo "$COMMITS" | grep -iE "(feat|add|new|enhance|improve)" | while IFS='|' read -r hash subject author date; do
-              echo "- **$subject** (*$author*, $date) [\\\`$hash\\\`]" >> release_preview.md
-            done || echo "- No new features" >> release_preview.md
+            echo "" >> release_preview.md
+            FEATURE_COUNT=0
+            while IFS='|' read -r hash subject author date; do
+              if echo "$subject" | grep -qiE "^(feat|add|new|enhance|improve)"; then
+                echo "- **$subject** (*$author*, $date) [\`$hash\`]" >> release_preview.md
+                FEATURE_COUNT=$((FEATURE_COUNT + 1))
+              fi
+            done < all_commits.tmp
+            if [ $FEATURE_COUNT -eq 0 ]; then
+              echo "- No new features in this release" >> release_preview.md
+            fi
             
             echo "" >> release_preview.md
             echo "### 🐛 Bug Fixes" >> release_preview.md
-            echo "$COMMITS" | grep -iE "(fix|bug|patch|resolve)" | while IFS='|' read -r hash subject author date; do
-              echo "- **$subject** (*$author*, $date) [\\\`$hash\\\`]" >> release_preview.md
-            done || echo "- No bug fixes" >> release_preview.md
+            echo "" >> release_preview.md
+            FIX_COUNT=0
+            while IFS='|' read -r hash subject author date; do
+              if echo "$subject" | grep -qiE "^(fix|bug|patch|resolve)"; then
+                echo "- **$subject** (*$author*, $date) [\`$hash\`]" >> release_preview.md
+                FIX_COUNT=$((FIX_COUNT + 1))
+              fi
+            done < all_commits.tmp
+            if [ $FIX_COUNT -eq 0 ]; then
+              echo "- No bug fixes in this release" >> release_preview.md
+            fi
             
             echo "" >> release_preview.md
             echo "### 🔧 Other Changes" >> release_preview.md
-            echo "$COMMITS" | grep -viE "(feat|add|new|enhance|improve|fix|bug|patch|resolve|merge)" | while IFS='|' read -r hash subject author date; do
-              echo "- **$subject** (*$author*, $date) [\\\`$hash\\\`]" >> release_preview.md
-            done || echo "- No other changes" >> release_preview.md
+            echo "" >> release_preview.md
+            OTHER_COUNT=0
+            while IFS='|' read -r hash subject author date; do
+              if ! echo "$subject" | grep -qiE "^(feat|add|new|enhance|improve|fix|bug|patch|resolve|merge)"; then
+                echo "- **$subject** (*$author*, $date) [\`$hash\`]" >> release_preview.md
+                OTHER_COUNT=$((OTHER_COUNT + 1))
+              fi
+            done < all_commits.tmp
+            if [ $OTHER_COUNT -eq 0 ]; then
+              echo "- No other changes in this release" >> release_preview.md
+            fi
+            
+            # Clean up temp file
+            rm -f all_commits.tmp
             
             echo "" >> release_preview.md
             echo "### 📊 Summary" >> release_preview.md
+            echo "" >> release_preview.md
             TOTAL_COMMITS=$(echo "$COMMITS" | wc -l)
+            CONTRIBUTORS=$(echo "$COMMITS" | cut -d'|' -f3 | sort -u | wc -l)
             echo "- **Total commits**: $TOTAL_COMMITS" >> release_preview.md
-            echo "- **Contributors**: $(echo "$COMMITS" | cut -d'|' -f3 | sort -u | wc -l)" >> release_preview.md
+            echo "- **Contributors**: $CONTRIBUTORS" >> release_preview.md
           fi
           
-          echo "" >> release_preview.md
-          echo "## 🎯 Next Steps" >> release_preview.md
-          echo "1. ✅ Review the changes above" >> release_preview.md
-          echo "2. ✅ Merge this PR to trigger the release build" >> release_preview.md
-          echo "3. ✅ Release will be created automatically with binaries for all platforms" >> release_preview.md
-          echo "" >> release_preview.md
-          echo "---" >> release_preview.md
-          echo "*This release preview was automatically generated when the version bump PR was created.*" >> release_preview.md
+          {
+            echo ""
+            echo "## 🎯 Next Steps"
+            echo ""
+            echo "1. Review the changes above"
+            echo "2. Merge this PR to trigger the release build"
+            echo "3. Release will be created automatically with binaries for all platforms"
+            echo ""
+            echo "---"
+            echo ""
+            echo "*This release preview was automatically generated when the version bump PR was created.*"
+          } >> release_preview.md
           
           # Post the comment
           gh api repos/${{ github.repository }}/issues/${{ github.event.number }}/comments \
