@@ -174,7 +174,7 @@ jobs:
             FEATURE_COUNT=0
             while IFS='|' read -r hash subject author date; do
               if echo "$subject" | grep -qiE "^(feat|add|new|enhance|improve)"; then
-                echo "- **$subject** (*$author*, $date) [\`$hash\`]" >> release_preview.md
+                echo "- **$subject** (*$author*, $date) [\`$hash\`](https://github.com/${{ github.repository }}/commit/$hash)" >> release_preview.md
                 FEATURE_COUNT=$((FEATURE_COUNT + 1))
               fi
             done < all_commits.tmp
@@ -188,7 +188,7 @@ jobs:
             FIX_COUNT=0
             while IFS='|' read -r hash subject author date; do
               if echo "$subject" | grep -qiE "^(fix|bug|patch|resolve)"; then
-                echo "- **$subject** (*$author*, $date) [\`$hash\`]" >> release_preview.md
+                echo "- **$subject** (*$author*, $date) [\`$hash\`](https://github.com/${{ github.repository }}/commit/$hash)" >> release_preview.md
                 FIX_COUNT=$((FIX_COUNT + 1))
               fi
             done < all_commits.tmp
@@ -202,7 +202,7 @@ jobs:
             OTHER_COUNT=0
             while IFS='|' read -r hash subject author date; do
               if ! echo "$subject" | grep -qiE "^(feat|add|new|enhance|improve|fix|bug|patch|resolve|merge)"; then
-                echo "- **$subject** (*$author*, $date) [\`$hash\`]" >> release_preview.md
+                echo "- **$subject** (*$author*, $date) [\`$hash\`](https://github.com/${{ github.repository }}/commit/$hash)" >> release_preview.md
                 OTHER_COUNT=$((OTHER_COUNT + 1))
               fi
             done < all_commits.tmp
