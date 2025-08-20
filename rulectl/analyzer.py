@@ -50,6 +50,19 @@ except ImportError:
         RateLimitConfig = None
         RateLimitStrategy = None
 
+# Import state manager
+try:
+    from .state_manager import AnalysisStateManager
+    from .analysis_phases import AnalysisPhase, PhaseStatus
+except ImportError:
+    try:
+        from rulectl.state_manager import AnalysisStateManager
+        from rulectl.analysis_phases import AnalysisPhase, PhaseStatus
+    except ImportError:
+        AnalysisStateManager = None
+        AnalysisPhase = None
+        PhaseStatus = None
+
 # Set up logging
 logger = logging.getLogger(__name__)
 
@@ -107,16 +120,18 @@ class RuleCluster:
         )
 
 class RepoAnalyzer:
-    def __init__(self, repo_path: str, max_batch_size: int = 3):
+    def __init__(self, repo_path: str, max_batch_size: int = 3, state_manager: AnalysisStateManager = None):
         """Initialize the repository analyzer.
 
         Args:
             repo_path: Path to the repository
             max_batch_size: Maximum number of files to analyze in a batch
+            state_manager: Optional state manager for resume functionality
         """
         self.repo_path = Path(repo_path).resolve()  # Get absolute path
         self.max_batch_size = max_batch_size
         self.client = b
+        self.state_manager = state_manager
 
         # Initialize token tracker
         try:
@@ -648,8 +663,15 @@ class RepoAnalyzer:
 
         return total_count, extension_counts
 
-    def analyze_structure(self) -> Dict[str, Any]:
+    async def analyze_structure(self) -> Dict[str, Any]:
         """Analyze the repository structure and create a map."""
+        # Check if we can resume from cache
+        if self.state_manager and AnalysisPhase:
+            cached_structure = await self.state_manager.load_cache_data(AnalysisPhase.STRUCTURE_ANALYSIS)
+            if cached_structure:
+                self.findings["repository"]["structure"] = cached_structure
+                return cached_structure
+        
         structure = {
             "file_types": {},
             "directories": {},
@@ -676,6 +698,11 @@ class RepoAnalyzer:
                     structure["file_types"][ext] = structure["file_types"].get(ext, 0) + 1
 
         self.findings["repository"]["structure"] = structure
+        
+        # Save to cache if state manager is available
+        if self.state_manager and AnalysisPhase:
+            await self.state_manager.complete_phase(AnalysisPhase.STRUCTURE_ANALYSIS, structure)
+        
         return structure
 
     def create_batches(self) -> List[List[str]]:
@@ -846,6 +873,96 @@ class RepoAnalyzer:
         self.findings["batches"].append(analysis.model_dump())
 
         return analysis
+
+    async def _update_file_analysis_progress(self, completed: int, failed: int, total: int, current_file: str = None):
+        """Update file analysis progress in state manager."""
+        if self.state_manager and AnalysisPhase:
+            await self.state_manager.update_progress(
+                AnalysisPhase.FILE_ANALYSIS,
+                completed=completed,
+                failed=failed,
+                total=total,
+                current_item=current_file
+            )
+
+    async def analyze_files_resumable(self, file_paths: List[str]) -> List[StaticAnalysisResult]:
+        """Analyze files with resume capability.
+        
+        Args:
+            file_paths: List of file paths to analyze
+            
+        Returns:
+            List of successful analysis results
+        """
+        # Check if we can resume from cached results
+        cached_results = []
+        remaining_files = file_paths.copy()
+        
+        if self.state_manager and AnalysisPhase:
+            cached_data = await self.state_manager.load_cache_data(AnalysisPhase.FILE_ANALYSIS)
+            if cached_data:
+                cached_results = [
+                    StaticAnalysisResult(**result) for result in cached_data.get('results', [])
+                ]
+                completed_files = set(result.file for result in cached_results)
+                remaining_files = [f for f in file_paths if f not in completed_files]
+                
+                # Restore findings from cache
+                self.findings["batches"] = cached_data.get('findings_batches', [])
+                
+                logger.info(f"Resuming file analysis: {len(cached_results)} files already completed, {len(remaining_files)} remaining")
+
+        all_results = cached_results.copy()
+        completed_count = len(cached_results)
+        failed_count = 0
+        total_count = len(file_paths)
+        
+        # Start the file analysis phase if not already started
+        if self.state_manager and AnalysisPhase:
+            await self.state_manager.start_phase(AnalysisPhase.FILE_ANALYSIS)
+            await self._update_file_analysis_progress(completed_count, failed_count, total_count)
+        
+        # Process remaining files
+        for i, file_path in enumerate(remaining_files):
+            try:
+                # Update progress
+                if self.state_manager:
+                    await self._update_file_analysis_progress(
+                        completed_count, failed_count, total_count, file_path
+                    )
+                
+                result = await self.analyze_file(file_path)
+                if result:
+                    all_results.append(result)
+                    completed_count += 1
+                else:
+                    failed_count += 1
+                
+                # Save progress periodically (every 10 files)
+                if (i + 1) % 10 == 0 and self.state_manager and AnalysisPhase:
+                    cache_data = {
+                        'results': [r.model_dump() for r in all_results],
+                        'findings_batches': self.findings["batches"]
+                    }
+                    await self.state_manager.complete_phase(AnalysisPhase.FILE_ANALYSIS, cache_data)
+                    
+            except Exception as e:
+                logger.error(f"Failed to analyze {file_path}: {e}")
+                failed_count += 1
+        
+        # Final progress update
+        if self.state_manager:
+            await self._update_file_analysis_progress(completed_count, failed_count, total_count)
+            
+            # Save final results to cache
+            if AnalysisPhase:
+                cache_data = {
+                    'results': [r.model_dump() for r in all_results],
+                    'findings_batches': self.findings["batches"]
+                }
+                await self.state_manager.complete_phase(AnalysisPhase.FILE_ANALYSIS, cache_data)
+        
+        return all_results
 
     async def _analyze_file_internal(self, file_info: FileInfo, baml_options: dict) -> StaticAnalysisResult:
         """Internal method to analyze a file - used by rate limiter."""
