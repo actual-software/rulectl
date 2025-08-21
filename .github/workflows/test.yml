@@ -41,6 +41,7 @@ jobs:
   # Add this job to act as a required check that depends on all test jobs
   all-tests:
     name: All Tests Passed
+    permissions: {}
     runs-on: ubuntu-latest
     needs: [installer-tests]
     if: always()
