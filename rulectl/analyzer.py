@@ -28,6 +28,28 @@ import mimetypes
 import logging
 import asyncio
 
+# Import structured logging
+try:
+    from .logging_config import get_logger, get_analysis_logger
+except ImportError:
+    try:
+        from rulectl.logging_config import get_logger, get_analysis_logger
+    except ImportError:
+        # Fallback if logging config not available
+        def get_logger(name):
+            import logging
+            logger = logging.getLogger(name)
+            class FallbackLogger:
+                def info(self, msg, **kwargs): logger.info(msg)
+                def warning(self, msg, **kwargs): logger.warning(msg)
+                def error(self, msg, **kwargs): logger.error(msg)
+                def debug(self, msg, **kwargs): logger.debug(msg)
+                def verbose(self, msg, **kwargs): logger.info(msg)  # Fallback to info for verbose
+            return FallbackLogger()
+        
+        def get_analysis_logger():
+            return get_logger("analysis")
+
 # Import git utilities but handle import errors gracefully
 try:
     from .git_utils import GitAnalyzer, GitError, get_file_importance_weights
@@ -117,6 +139,15 @@ class RepoAnalyzer:
         self.repo_path = Path(repo_path).resolve()  # Get absolute path
         self.max_batch_size = max_batch_size
         self.client = b
+        
+        # Initialize logging
+        self.logger = get_logger("analyzer")
+        self.analysis_logger = get_analysis_logger()
+        
+        # Log initialization
+        self.logger.info("RepoAnalyzer initialized",
+                        repo_path=str(self.repo_path),
+                        max_batch_size=max_batch_size)
 
         # Initialize token tracker
         try:
@@ -772,13 +803,17 @@ class RepoAnalyzer:
         Returns:
             StaticAnalysisResult if analysis succeeds, None if file should be skipped
         """
+        self.logger.debug("Starting file analysis", file_path=file_path)
+        
         full_path = self.repo_path / file_path
         if not full_path.exists() or not self.should_analyze_file(str(file_path)):
+            self.logger.debug("File skipped - does not exist or should not be analyzed", file_path=file_path)
             return None
 
         is_analyzable, reason, content = self.is_analyzable_text_file(full_path)
 
         if not is_analyzable:
+            self.logger.debug("File not analyzable", file_path=file_path, reason=reason)
             if reason == "binary":
                 self.skipped_binary.add(file_path)
             elif reason == "too_large":
@@ -800,6 +835,11 @@ class RepoAnalyzer:
         baml_options = self.token_tracker.get_baml_options() if self.token_tracker else {}
 
         try:
+            self.logger.verbose("Calling LLM for file analysis", 
+                              file_path=file_path, 
+                              content_length=len(content),
+                              has_rate_limiter=self.rate_limiter is not None)
+            
             if self.rate_limiter:
                 # Use rate limiter for API calls
                 analysis = await self.rate_limiter.execute_with_rate_limiting(
@@ -815,10 +855,14 @@ class RepoAnalyzer:
             # Handle rate limit errors specifically
             error_str = str(e).lower()
             if "rate_limit" in error_str or "429" in error_str or "too many requests" in error_str:
+                self.logger.error("Rate limit hit during file analysis", 
+                                file_path=file_path, 
+                                error=str(e))
                 logger.warning(f"Rate limit hit while analyzing {file_path}: {e}")
 
                 # If we have a rate limiter, wait and retry
                 if self.rate_limiter:
+                    self.logger.info("Waiting for rate limit to reset", wait_seconds=60)
                     logger.info("Waiting for rate limit to reset...")
                     await asyncio.sleep(60)  # Wait 1 minute
                     try:
@@ -827,6 +871,7 @@ class RepoAnalyzer:
                             file_info,
                             baml_options
                         )
+                        self.logger.info("File analysis successful after retry", file_path=file_path)
                     except Exception as retry_error:
                         logger.error(f"Retry failed for {file_path}: {retry_error}")
                         return None
@@ -835,6 +880,10 @@ class RepoAnalyzer:
                     return None
             else:
                 # Other types of errors
+                self.logger.error("File analysis failed", 
+                                file_path=file_path, 
+                                error=str(e),
+                                error_type=type(e).__name__)
                 logger.error(f"Error analyzing {file_path}: {e}")
                 return None
 
@@ -844,6 +893,11 @@ class RepoAnalyzer:
 
         # Store the serialized version in findings
         self.findings["batches"].append(analysis.model_dump())
+        
+        # Log successful completion
+        self.logger.info("File analysis completed successfully",
+                        file_path=file_path,
+                        rules_found=len(analysis.rules) if hasattr(analysis, 'rules') else 0)
 
         return analysis
 
@@ -1274,13 +1328,22 @@ Here is the JSON array of merged candidate rules:
         Returns:
             Tuple of (list of .mdc file contents, synthesis statistics)
         """
+        self.logger.info("Starting advanced rule synthesis",
+                        analysis_count=len(analyses),
+                        has_importance_weights=importance_weights is not None)
+        
         # Step 1: Get git statistics
         git_stats = self._get_git_file_stats()
+        self.logger.debug("Git statistics gathered", 
+                         files_with_stats=len(git_stats) if git_stats else 0)
 
         # Step 2: Convert to candidate rules with git metadata
         candidate_rules = self._convert_to_candidate_rules(analyses, git_stats)
+        self.logger.info("Candidate rules generated", 
+                        rule_count=len(candidate_rules))
 
         if not candidate_rules:
+            self.logger.warning("No candidate rules generated - synthesis aborted")
             return [], {}
 
         # Step 3: Cluster rules by similarity
