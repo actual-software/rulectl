@@ -273,11 +273,12 @@ def configure_rate_limiting(requests: Optional[int], delay: Optional[int], strat
         click.echo("\n💡 These settings will apply to the next rulectl start command")
         click.echo("💡 To make them permanent, add them to your shell profile")
 
-@config.command("logs")
+
+@cli.command()
 @click.option("--follow", "-f", is_flag=True, help="Follow log output (like tail -f)")
 @click.option("--lines", "-n", type=int, default=50, help="Number of recent lines to show")
-@click.option("--log-type", type=click.Choice(["main", "api", "analysis", "debug"], case_sensitive=False), default="main", help="Type of log to show")
-def show_logs(follow: bool, lines: int, log_type: str):
+@click.option("--type", "log_type", type=click.Choice(["main", "api", "analysis", "debug"], case_sensitive=False), default="main", help="Type of log to show")
+def logs(follow: bool, lines: int, log_type: str):
     """Show recent log entries."""
     from rulectl.logging_config import get_log_directory
     
@@ -326,6 +327,7 @@ def show_logs(follow: bool, lines: int, log_type: str):
                     click.echo(line.rstrip())
         except Exception as e:
             click.echo(f"❌ Error reading log file: {e}")
+
 
 @config.command("clear")
 @click.argument("provider", type=click.Choice(["anthropic", "openai", "all"], case_sensitive=False))

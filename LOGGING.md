@@ -56,10 +56,10 @@ rulectl start --log-level DEBUG           # Enable full debug logging
 rulectl start --log-dir /custom/path      # Custom log directory
 
 # View logs
-rulectl config logs                       # Show recent main logs
-rulectl config logs --log-type api        # Show API logs
-rulectl config logs --follow             # Follow logs in real-time
-rulectl config logs --lines 100          # Show more lines
+rulectl logs                              # Show recent main logs
+rulectl logs --type api                   # Show API logs
+rulectl logs --follow                     # Follow logs in real-time
+rulectl logs --lines 100                  # Show more lines
 ```
 
 ### Available Log Levels
@@ -202,16 +202,16 @@ rulectl start --log-level VERBOSE
 rulectl start --log-level DEBUG
 
 # View the results
-rulectl config logs --log-type analysis
+rulectl logs --type analysis
 ```
 
 ### API Monitoring
 ```bash
 # Monitor API calls in real-time
-rulectl config logs --log-type api --follow
+rulectl logs --type api --follow
 
 # Check recent API errors
-rulectl config logs --log-type debug --lines 100
+rulectl logs --type debug --lines 100
 ```
 
 ### Debugging Issues
@@ -220,9 +220,9 @@ rulectl config logs --log-type debug --lines 100
 rulectl start --log-level DEBUG --verbose
 
 # Review all logs after failure
-rulectl config logs --log-type main
-rulectl config logs --log-type api
-rulectl config logs --log-type debug
+rulectl logs --type main
+rulectl logs --type api
+rulectl logs --type debug
 ```
 
 ### Custom Log Directory
@@ -230,8 +230,8 @@ rulectl config logs --log-type debug
 # Use project-specific logs
 rulectl start --log-dir ./project-logs --log-level VERBOSE
 
-# View project logs (note: --log-dir not needed for viewing, uses current config)
-rulectl config logs
+# View project logs
+rulectl logs
 ```
 
 ## Implementation Files

@@ -48,16 +48,16 @@ Rulectl provides comprehensive logging for transparency, debugging, and monitori
 
 ```bash
 # View recent logs
-rulectl config logs
+rulectl logs
 
 # Monitor API calls in real-time
-rulectl config logs --log-type api --follow
+rulectl logs --type api --follow
 
 # Show detailed debug information
-rulectl config logs --log-type debug --lines 100
+rulectl logs --type debug --lines 100
 
 # View analysis summaries
-rulectl config logs --log-type analysis
+rulectl logs --type analysis
 ```
 
 **Log Levels**: Use `--log-level VERBOSE` for detailed API tracking or `--log-level DEBUG` for full debugging. Default is `INFO`.
@@ -311,8 +311,8 @@ rulectl start --log-level DEBUG                    # Enable full debug logging
 rulectl start --log-dir ./custom-logs              # Custom log location
 
 # View logs
-rulectl config logs                                 # Show recent main logs
-rulectl config logs --log-type api --follow        # Monitor API calls
+rulectl logs                                        # Show recent main logs
+rulectl logs --type api --follow                   # Monitor API calls
 ```
 
 The tool will:
