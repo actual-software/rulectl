@@ -107,18 +107,20 @@ class RuleCluster:
         )
 
 class RepoAnalyzer:
-    def __init__(self, repo_path: str, max_batch_size: int = 3):
+    def __init__(self, repo_path: str, max_batch_size: int = 3, ollama_only: bool = False):
         """Initialize the repository analyzer.
 
         Args:
             repo_path: Path to the repository
             max_batch_size: Maximum number of files to analyze in a batch
+            ollama_only: If True, use only Ollama without fallback to cloud providers
         """
         self.repo_path = Path(repo_path).resolve()  # Get absolute path
         self.max_batch_size = max_batch_size
         
         # Initialize BAML client - use Ollama if configured, otherwise cloud providers
         self.use_ollama = os.getenv("USE_OLLAMA") == "true"
+        self.ollama_only = ollama_only
         self.client = b
 
         # Initialize token tracker
@@ -178,7 +180,12 @@ class RepoAnalyzer:
         
         # Add Ollama client selection if configured
         if self.use_ollama:
-            options["client"] = "AdaptiveClient"
+            if self.ollama_only:
+                # Use Ollama exclusively without cloud fallback
+                options["client"] = "OllamaOnlyClient"
+            else:
+                # Use Ollama with cloud fallback
+                options["client"] = "AdaptiveClient"
             
         # Merge any additional options
         if additional_options:
