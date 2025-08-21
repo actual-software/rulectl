@@ -68,9 +68,9 @@ client<llm> OllamaClient {
   provider openai-generic
   retry_policy OllamaRetry
   options {
+    // No API key needed for local Ollama
     base_url env.OLLAMA_BASE_URL
     model env.OLLAMA_MODEL
-    // No API key needed for local Ollama
   }
 }
 
