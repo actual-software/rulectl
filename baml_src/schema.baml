@@ -43,7 +43,7 @@ class BatchAnalysis {
 
 // Static analysis function for single file inspection
 function AnalyzeFileForConventions(file: FileInfo) -> StaticAnalysisResult {
-    client CustomSonnet
+    client AdaptiveClient
     prompt #"
     You are a static-analysis assistant.
     Your job is to inspect ONE source file and emit **JSON** describing *project-specific* conventions
@@ -74,7 +74,7 @@ function AnalyzeFileForConventions(file: FileInfo) -> StaticAnalysisResult {
 
 // Updated synthesis function for static analysis results
 function SynthesizeRules(analyses: StaticAnalysisResult[]) -> RuleCandidate[] {
-    client CustomSonnet
+    client AdaptiveClient
     prompt #"
     You are an expert at creating Cursor rules based on static analysis results.
     Review the following file analyses and synthesize them into a cohesive set of rules.
@@ -115,7 +115,7 @@ function SynthesizeRules(analyses: StaticAnalysisResult[]) -> RuleCandidate[] {
 
 // Main analysis functions (kept for backward compatibility)
 function AnalyzeCodeBatch(files: FileInfo[]) -> BatchAnalysis {
-    client CustomSonnet
+    client AdaptiveClient
     prompt #"
     You are an expert code analyzer focusing on identifying patterns and generating Cursor rules.
     Analyze the following code files and identify:
@@ -145,7 +145,7 @@ function AnalyzeCodeBatch(files: FileInfo[]) -> BatchAnalysis {
 
 // Optional: Specialized analyzers for different file types
 function AnalyzeTypeScript(file: FileInfo) -> CodePattern[] {
-    client CustomSonnet
+    client AdaptiveClient
     prompt #"
     You are an expert TypeScript analyzer. Analyze this TypeScript file and identify:
     1. TypeScript-specific patterns
@@ -162,7 +162,7 @@ function AnalyzeTypeScript(file: FileInfo) -> CodePattern[] {
 }
 
 function AnalyzePython(file: FileInfo) -> CodePattern[] {
-    client CustomSonnet
+    client AdaptiveClient
     prompt #"
     You are an expert Python analyzer. Analyze this Python file and identify:
     1. Python-specific idioms
@@ -184,7 +184,7 @@ function AuditMergedRule(
     merged_rule: StaticAnalysisRule,
     original_rules: StaticAnalysisRule[]
 ) -> StaticAnalysisRule {
-    client CustomSonnet
+    client AdaptiveClient
     prompt #"
     You are a code rule auditor. Your job is to clean up a merged coding rule that was created 
     by clustering similar rules together. The merge may have created nonsensical combinations.
@@ -234,7 +234,7 @@ class RuleCategory {
 }
 
 function CategorizeAcceptedRules(accepted_rules: StaticAnalysisRule[]) -> RuleCategory[] {
-    client CustomSonnet
+    client AdaptiveClient
     prompt #"
     You are a code organization expert. Your job is to categorize accepted coding rules 
     into logical, concise categories suitable for .mdc filenames.
@@ -288,7 +288,7 @@ test TestName {
 }
 
 function TestHelloWorld(name: string) -> string {
-  client CustomSonnet
+  client AdaptiveClient
   prompt #"
   Say hello to the world.
   "#

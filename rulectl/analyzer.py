@@ -116,6 +116,9 @@ class RepoAnalyzer:
         """
         self.repo_path = Path(repo_path).resolve()  # Get absolute path
         self.max_batch_size = max_batch_size
+        
+        # Initialize BAML client - use Ollama if configured, otherwise cloud providers
+        self.use_ollama = os.getenv("USE_OLLAMA") == "true"
         self.client = b
 
         # Initialize token tracker
@@ -168,6 +171,20 @@ class RepoAnalyzer:
 
         # Initialize mimetypes
         mimetypes.init()
+
+    def _get_baml_options(self, additional_options: dict = None) -> dict:
+        """Get BAML options with appropriate client selection and token tracking."""
+        options = self.token_tracker.get_baml_options() if self.token_tracker else {}
+        
+        # Add Ollama client selection if configured
+        if self.use_ollama:
+            options["client"] = "AdaptiveClient"
+            
+        # Merge any additional options
+        if additional_options:
+            options.update(additional_options)
+            
+        return options
 
     def _load_rate_limit_config(self) -> RateLimitConfig:
         """Load rate limiting configuration from config file or environment variables."""
@@ -797,7 +814,7 @@ class RepoAnalyzer:
         )
 
         # Analyze individual file with rate limiting and token tracking
-        baml_options = self.token_tracker.get_baml_options() if self.token_tracker else {}
+        baml_options = self._get_baml_options()
 
         try:
             if self.rate_limiter:
@@ -1343,7 +1360,7 @@ Here is the JSON array of merged candidate rules:
                 # Only audit if we have multiple rules in the cluster
                 if len(cluster.rules) > 1:
                     # Use LLM to audit and improve the merged rule
-                    baml_options = self.token_tracker.get_baml_options() if self.token_tracker else {}
+                    baml_options = self._get_baml_options()
                     audited_rule = await self.client.AuditMergedRule(
                         cluster_key=cluster.key,
                         merged_rule=merged_rule,
@@ -1430,7 +1447,7 @@ Here is the JSON array of merged candidate rules:
         Returns:
             List of synthesized rule candidates
         """
-        baml_options = self.token_tracker.get_baml_options() if self.token_tracker else {}
+        baml_options = self._get_baml_options()
 
         if importance_weights:
             # Apply importance weights to analyses
@@ -1626,7 +1643,7 @@ Here is the JSON array of merged candidate rules:
                 for f in file_infos
             ]
 
-            baml_options = self.token_tracker.get_baml_options() if self.token_tracker else {}
+            baml_options = self._get_baml_options()
             result = await self.client.ReviewSkippedFiles(
                 project_info=project_info,
                 skipped_files=baml_file_infos,
