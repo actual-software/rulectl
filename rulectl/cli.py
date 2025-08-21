@@ -91,7 +91,7 @@ def mask_api_key(key: str) -> str:
         return "***"
     return f"{key[:4]}...{key[-4:]}"
 
-def ensure_api_keys() -> dict:
+def ensure_api_keys(use_ollama: bool = False) -> dict:
     """Ensure we have required API keys, prompting user if needed."""
     # Load environment variables with override to ensure .env takes precedence
     load_dotenv(override=True)
@@ -100,6 +100,13 @@ def ensure_api_keys() -> dict:
     os.environ["BAML_LOG"] = "OFF"
     
     keys = {}
+    
+    # If using Ollama exclusively, skip API key requirements
+    if use_ollama:
+        click.echo("🏠 Running with local Ollama - no cloud API keys required")
+        # Set dummy API keys to satisfy BAML client initialization
+        os.environ["ANTHROPIC_API_KEY"] = "sk-ant-api01234567890123456789012345678901234567890123456789012345678901234567890123456789"
+        return keys
     
     # Check for Anthropic key (primary)
     anthropic_key = get_anthropic_api_key()
@@ -451,7 +458,9 @@ async def async_start(verbose: bool, force: bool, model: Optional[str], server: 
         click.echo(f"🔧 Setting rate limiting strategy to {strategy}")
     
     # Ensure we have required API keys before proceeding
-    api_keys = ensure_api_keys()
+    # Skip API key requirements if using Ollama exclusively
+    use_ollama_only = model is not None
+    api_keys = ensure_api_keys(use_ollama=use_ollama_only)
     
     # Import non-BAML dependent modules first
     try:
@@ -537,7 +546,7 @@ async def async_start(verbose: bool, force: bool, model: Optional[str], server: 
             from rulectl.analyzer import RepoAnalyzer, MAX_ANALYZABLE_LINES
 
     # Initialize analyzer with the specified directory
-    analyzer = RepoAnalyzer(directory)
+    analyzer = RepoAnalyzer(directory, ollama_only=use_ollama_only)
     
     # Check for .gitignore
     if not analyzer.has_gitignore():

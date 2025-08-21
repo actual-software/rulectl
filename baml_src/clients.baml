@@ -83,6 +83,17 @@ client<llm> OllamaWithFallback {
   }
 }
 
+// Ollama-only client for purely local analysis
+client<llm> OllamaOnlyClient {
+  provider openai-generic
+  retry_policy OllamaRetry
+  options {
+    // Use only Ollama, no fallback to cloud
+    base_url env.OLLAMA_BASE_URL
+    model env.OLLAMA_MODEL
+  }
+}
+
 // Adaptive client that prefers local Ollama but falls back to cloud providers
 client<llm> AdaptiveClient {
   provider fallback
