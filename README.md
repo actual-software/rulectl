@@ -18,6 +18,9 @@ Bulid by [Actual Software](http://actual.ai)
 - 📦 **Batch processing** - Analyzes multiple files efficiently to reduce API calls
 - 🔄 **Automatic retry** - Handles failures gracefully with exponential backoff
 - ⚙️ **Flexible configuration** - Customize rate limiting behavior via config files or CLI options
+- 📝 **Comprehensive logging** - Detailed logs for debugging, monitoring, and audit trails
+- 🔍 **Real-time monitoring** - Track API usage, costs, and analysis progress
+- 📊 **Structured logging** - JSON format logs for easy parsing and analysis
 
 ## Rate Limiting
 
@@ -31,6 +34,36 @@ Rulectl now includes intelligent rate limiting to help you work within API provi
 
 For detailed rate limiting configuration, see [RATE_LIMITING.md](RATE_LIMITING.md).
 
+## Logging & Monitoring
+
+Rulectl provides comprehensive logging for transparency, debugging, and monitoring:
+
+- **📝 Multiple log types** - Main logs, API calls, analysis runs, and debug information
+- **🔍 Structured logging** - JSON format for machine-readable logs and easy parsing
+- **📊 Real-time monitoring** - Track API usage, costs, and analysis progress
+- **⚙️ Configurable detail** - Five log levels from ERROR to DEBUG, with VERBOSE for API tracking
+- **🛠️ Built-in log viewer** - View and follow logs directly from the CLI
+
+### Logging Examples
+
+```bash
+# View recent logs
+rulectl config logs
+
+# Monitor API calls in real-time
+rulectl config logs --log-type api --follow
+
+# Show detailed debug information
+rulectl config logs --log-type debug --lines 100
+
+# View analysis summaries
+rulectl config logs --log-type analysis
+```
+
+**Log Levels**: Use `--log-level VERBOSE` for detailed API tracking or `--log-level DEBUG` for full debugging. Default is `INFO`.
+
+For complete logging documentation, see [LOGGING.md](LOGGING.md).
+
 ### Quick Rate Limiting Examples
 
 ```bash
@@ -42,6 +75,15 @@ rulectl start --rate-limit 10
 
 # Use conservative settings for large repositories
 rulectl start --batch-size 2 --delay-ms 2000
+
+# Enable detailed API logging 
+rulectl start --log-level VERBOSE
+
+# Enable full debug logging
+rulectl start --log-level DEBUG
+
+# Use custom log directory
+rulectl start --log-dir ./project-logs
 
 # Show current rate limiting configuration
 rulectl config show
@@ -237,6 +279,40 @@ With verbose output:
 
 ```bash
 rulectl start --verbose ~/path/to/repository
+```
+
+With detailed API logging:
+
+```bash
+rulectl start --log-level VERBOSE
+```
+
+With full debug logging:
+
+```bash
+rulectl start --log-level DEBUG
+```
+
+### All Available Options
+
+```bash
+# Analysis options
+rulectl start --verbose --force                    # Skip confirmations
+rulectl start ~/path/to/repository                 # Analyze specific directory
+
+# Rate limiting options  
+rulectl start --rate-limit 10                      # Override requests per minute
+rulectl start --batch-size 2 --delay-ms 2000       # Conservative processing
+rulectl start --no-batching --strategy exponential # Fine-tune rate limiting
+
+# Logging options
+rulectl start --log-level VERBOSE                  # Enable detailed API logging
+rulectl start --log-level DEBUG                    # Enable full debug logging
+rulectl start --log-dir ./custom-logs              # Custom log location
+
+# View logs
+rulectl config logs                                 # Show recent main logs
+rulectl config logs --log-type api --follow        # Monitor API calls
 ```
 
 The tool will:

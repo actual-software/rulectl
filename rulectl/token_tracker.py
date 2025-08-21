@@ -9,6 +9,25 @@ and provides intelligent fallback estimation when collector data is unavailable.
 from pathlib import Path
 import yaml
 
+# Import structured logging
+try:
+    from .logging_config import get_api_logger
+except ImportError:
+    try:
+        from rulectl.logging_config import get_api_logger
+    except ImportError:
+        # Fallback if logging config not available
+        def get_api_logger():
+            import logging
+            logger = logging.getLogger("token_tracker")
+            class FallbackLogger:
+                def info(self, msg, **kwargs): logger.info(msg)
+                def warning(self, msg, **kwargs): logger.warning(msg)
+                def error(self, msg, **kwargs): logger.error(msg)
+                def debug(self, msg, **kwargs): logger.debug(msg)
+                def verbose(self, msg, **kwargs): logger.info(msg)  # Fallback to info for verbose
+            return FallbackLogger()
+
 
 class TokenTracker:
     """Track token usage and costs with real-time monitoring and cost estimation.
@@ -76,6 +95,7 @@ class TokenTracker:
         self.total_cost = 0.0
         self.call_count = 0
         self.collector = None
+        self.api_logger = get_api_logger()
         
         # Initialize BAML Collector if available
         try:
@@ -278,15 +298,36 @@ class TokenTracker:
                 
                 if input_tokens > 0 or output_tokens > 0:
                     self.add_usage(phase, model, input_tokens, output_tokens)
+                    
+                    # Log successful token tracking (VERBOSE level for detailed tracking)
+                    self.api_logger.verbose("Token usage tracked from BAML collector",
+                                           phase=phase,
+                                           model=model,
+                                           input_tokens=input_tokens,
+                                           output_tokens=output_tokens,
+                                           source="collector")
                 else:
                     # Fallback if no usage data
                     self.add_estimated_usage(phase, model)
+                    self.api_logger.warning("No token usage data in collector - using estimates",
+                                          phase=phase,
+                                          model=model,
+                                          source="fallback")
             else:
                 # Fallback if no usage object
                 self.add_estimated_usage(phase, model)
-        except Exception:
+                self.api_logger.warning("No usage object in collector - using estimates",
+                                      phase=phase,
+                                      model=model,
+                                      source="fallback")
+        except Exception as e:
             # Fallback on any error
             self.add_estimated_usage(phase, model)
+            self.api_logger.error("Error accessing BAML collector - using estimates",
+                                phase=phase,
+                                model=model,
+                                error=str(e),
+                                source="fallback")
     
     def add_usage(self, phase: str, model: str, input_tokens: int, output_tokens: int):
         """Add token usage for a specific phase and model.
@@ -319,6 +360,16 @@ class TokenTracker:
         self.total_output_tokens += output_tokens
         self.total_cost += cost
         self.call_count += 1
+        
+        # Log token usage addition (VERBOSE level for detailed tracking)
+        self.api_logger.verbose("Token usage added",
+                              phase=phase,
+                              model=model,
+                              input_tokens=input_tokens,
+                              output_tokens=output_tokens,
+                              cost=cost,
+                              total_cost=self.total_cost,
+                              total_calls=self.call_count)
 
     
     def add_estimated_usage(self, phase: str, model: str = "claude-sonnet-4-20250514"):
