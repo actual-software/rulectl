@@ -14,6 +14,7 @@ Bulid by [Actual Software](http://actual.ai)
 - 🚀 Easy to use command-line interface
 - 📁 Analyze any Git repository by path
 - 🔄 Automatic BAML initialization - no manual setup required
+- 🤖 **Local AI support** - Use Ollama models instead of cloud providers
 - 🚦 **Smart rate limiting** - Prevents API rate limit errors with configurable delays
 - 📦 **Batch processing** - Analyzes multiple files efficiently to reduce API calls
 - 🔄 **Automatic retry** - Handles failures gracefully with exponential backoff
@@ -221,7 +222,9 @@ This command uses [act](https://github.com/nektos/act) to simulate the GitHub Ac
 
 ## Usage
 
-Basic usage (analyze current directory):
+### Basic Usage
+
+Analyze current directory (uses Anthropic Claude by default):
 
 ```bash
 rulectl start
@@ -238,6 +241,28 @@ With verbose output:
 ```bash
 rulectl start --verbose ~/path/to/repository
 ```
+
+### Local AI with Ollama
+
+Use local AI models instead of cloud providers:
+
+```bash
+# Use local llama3 model
+rulectl start --model llama3
+
+# Use local model with custom server
+rulectl start --model qwen2 --server localhost:11434
+
+# Use remote Ollama server
+rulectl start --model mistral --server 192.168.1.100:11434
+```
+
+**Requirements for Ollama:**
+- [Install Ollama](https://ollama.com) 
+- Download models: `ollama pull llama3`
+- Start server: `ollama serve`
+
+See [OLLAMA_SUPPORT.md](OLLAMA_SUPPORT.md) for detailed setup and configuration.
 
 The tool will:
 

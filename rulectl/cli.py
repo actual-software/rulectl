@@ -315,20 +315,75 @@ def clear_key(provider: str, force: bool):
     else:
         click.echo("No stored keys found.")
 
+async def validate_ollama_connection(server_url: str, model: str, verbose: bool = False):
+    """Validate Ollama server connection and model availability."""
+    import aiohttp
+    import asyncio
+    
+    try:
+        # Remove /v1 suffix for model checking (Ollama's native API)
+        base_url = server_url.replace('/v1', '')
+        
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+            # Test server connectivity
+            if verbose:
+                click.echo(f"🔍 Testing connection to {base_url}...")
+            
+            try:
+                async with session.get(f"{base_url}/api/tags") as response:
+                    if response.status == 200:
+                        models_data = await response.json()
+                        available_models = [m['name'].split(':')[0] for m in models_data.get('models', [])]
+                        
+                        if verbose:
+                            click.echo(f"✅ Connected to Ollama server")
+                            click.echo(f"📦 Available models: {', '.join(available_models)}")
+                        
+                        # Check if requested model is available
+                        model_base = model.split(':')[0]  # Remove tag if present
+                        if model_base not in available_models:
+                            click.echo(f"⚠️  Model '{model}' not found on server")
+                            click.echo(f"📦 Available models: {', '.join(available_models)}")
+                            if not click.confirm("Continue anyway? (Ollama may download the model automatically)"):
+                                raise click.Abort()
+                        else:
+                            click.echo(f"✅ Model '{model}' is available")
+                    else:
+                        raise aiohttp.ClientError(f"Server returned status {response.status}")
+            except aiohttp.ClientError as e:
+                click.echo(f"❌ Failed to connect to Ollama server at {base_url}")
+                click.echo(f"   Error: {e}")
+                click.echo(f"💡 Make sure Ollama is running: 'ollama serve'")
+                raise click.Abort()
+                
+    except asyncio.TimeoutError:
+        click.echo(f"❌ Connection timeout to Ollama server at {base_url}")
+        click.echo(f"💡 Make sure Ollama is running and accessible")
+        raise click.Abort()
+    except Exception as e:
+        click.echo(f"❌ Unexpected error validating Ollama connection: {e}")
+        raise click.Abort()
+
 @cli.command()
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--force", "-f", is_flag=True, help="Skip confirmation prompts")
+@click.option("--model", type=str, help="Use local Ollama model (e.g., llama3, qwen2, mistral)")
+@click.option("--server", type=str, default="localhost:11434", help="Ollama server address (default: localhost:11434)")
 @click.option("--rate-limit", type=int, help="Override rate limit (requests per minute)")
 @click.option("--batch-size", type=int, help="Override batch size for processing")
 @click.option("--delay-ms", type=int, help="Override base delay between requests (milliseconds)")
 @click.option("--no-batching", is_flag=True, help="Disable batch processing")
 @click.option("--strategy", type=click.Choice(["constant", "exponential", "adaptive"]), help="Rate limiting strategy")
 @click.argument("directory", type=click.Path(exists=True, file_okay=False, dir_okay=True), default=".")
-def start(verbose: bool, force: bool, rate_limit: Optional[int], batch_size: Optional[int], 
+def start(verbose: bool, force: bool, model: Optional[str], server: str, rate_limit: Optional[int], batch_size: Optional[int], 
           delay_ms: Optional[int], no_batching: bool, strategy: Optional[str], directory: str):
     """Start the Rulectl service.
     
     DIRECTORY: Path to the repository to analyze (default: current directory)
+    
+    Local AI options:
+    --model: Use local Ollama model instead of cloud providers
+    --server: Ollama server address (default: localhost:11434)
     
     Rate limiting options help prevent hitting API rate limits:
     --rate-limit: Override requests per minute limit
@@ -339,16 +394,40 @@ def start(verbose: bool, force: bool, rate_limit: Optional[int], batch_size: Opt
     """
     try:
         # Run the async main function
-        asyncio.run(async_start(verbose, force, rate_limit, batch_size, delay_ms, no_batching, strategy, directory))
+        asyncio.run(async_start(verbose, force, model, server, rate_limit, batch_size, delay_ms, no_batching, strategy, directory))
     except Exception as e:
         click.echo(f"\n❌ Error: {str(e)}")
         sys.exit(1)
 
-async def async_start(verbose: bool, force: bool, rate_limit: Optional[int], batch_size: Optional[int],
+async def async_start(verbose: bool, force: bool, model: Optional[str], server: str, rate_limit: Optional[int], batch_size: Optional[int],
                      delay_ms: Optional[int], no_batching: bool, strategy: Optional[str], directory: str):
     """Async implementation of the start command."""
     # Convert directory to absolute path
     directory = str(Path(directory).resolve())
+    
+    # Configure Ollama if model is specified
+    use_ollama = model is not None
+    if use_ollama:
+        click.echo(f"🤖 Using local Ollama model: {model}")
+        click.echo(f"🌐 Ollama server: {server}")
+        
+        # Set up Ollama environment variables
+        if not server.startswith(('http://', 'https://')):
+            server = f"http://{server}"
+        if not server.endswith('/v1'):
+            server = f"{server}/v1"
+        
+        os.environ["OLLAMA_BASE_URL"] = server
+        os.environ["OLLAMA_MODEL"] = model
+        os.environ["USE_OLLAMA"] = "true"
+        
+        # Validate Ollama connection
+        await validate_ollama_connection(server, model, verbose)
+    else:
+        # Ensure Ollama environment variables are not set
+        os.environ.pop("USE_OLLAMA", None)
+        os.environ.pop("OLLAMA_BASE_URL", None) 
+        os.environ.pop("OLLAMA_MODEL", None)
     
     # Set rate limiting environment variables if provided
     if rate_limit:
