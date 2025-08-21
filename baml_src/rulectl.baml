@@ -13,7 +13,7 @@ test HelloWorld {
 }
 
 function ReviewSkippedFiles(project_info: string, skipped_files: FileInfo[]) -> SkippedFilesAnalysis {
-  client CustomSonnet
+  client AdaptiveClient
   prompt #"
     You are analyzing a software project to determine which configuration/non-source files might contain useful coding patterns or conventions.
 
