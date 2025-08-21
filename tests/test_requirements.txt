@@ -1,0 +1,26 @@
+# Test requirements for rulectl logging tests
+# Install with: pip install -r test_requirements.txt
+
+# Core testing framework
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-asyncio>=0.21.0
+
+# For CLI testing
+click>=8.0.0
+
+# For async testing
+aiofiles>=23.0.0
+
+# For mocking and testing utilities
+pytest-mock>=3.10.0
+
+# For test coverage reporting
+coverage>=7.0.0
+
+# For testing structured logging
+jsonschema>=4.0.0
+
+# Optional: for better test output
+pytest-html>=3.1.0
+pytest-xdist>=3.0.0  # for parallel test execution
