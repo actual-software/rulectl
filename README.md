@@ -238,3 +238,7 @@ The rules and analysis files will be created in the target repository under:
 
 - The rules file: `.cursor/rules.mdc`
 - Analysis results: `.rulectl/analysis.json`
+
+# Further Documentation
+
+Please see [`docs/`](https://github.com/actual-software/rulectl/tree/main/docs) folder for more documentation on feature implementations, usage, and development.
