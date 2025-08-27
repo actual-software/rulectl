@@ -1,0 +1,55 @@
+name: Test Suite
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  installer-tests:
+    name: Run Installer Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install docker-compose
+        run: |
+          # GitHub Actions runners come with docker compose plugin, but not standalone docker-compose
+          # Create a symlink for compatibility with existing Makefile
+          sudo ln -sf /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+          docker-compose version
+
+      - name: Run installer tests
+        working-directory: tests/installer
+        run: |
+          echo "Running installer tests..."
+          make test-linux
+
+      - name: Clean up Docker resources
+        if: always()
+        working-directory: tests/installer
+        run: |
+          make clean
+
+  # Add this job to act as a required check that depends on all test jobs
+  all-tests:
+    name: All Tests Passed
+    permissions: {}
+    runs-on: ubuntu-latest
+    needs: [installer-tests]
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          if [[ "${{ needs.installer-tests.result }}" != "success" ]]; then
+            echo "❌ Tests failed - installer-tests: ${{ needs.installer-tests.result }}"
+            exit 1
+          fi
+          echo "✅ All tests passed successfully!"
