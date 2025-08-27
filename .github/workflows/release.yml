@@ -575,7 +575,7 @@ jobs:
       - name: Trigger Homebrew tap update
         uses: peter-evans/repository-dispatch@v3
         with:
-          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           repository: actual-software/homebrew-tap
           event-type: new-release
           client-payload: |
