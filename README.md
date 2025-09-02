@@ -205,6 +205,20 @@ deactivate
 
 Note: Make sure to add `venv/` to your `.gitignore` file to avoid committing the virtual environment to version control.
 
+### Testing GitHub Actions Locally
+
+For macOS developers, you can test GitHub Actions workflows locally using the `ci-local-test` make target:
+
+```bash
+# Install act (if not already installed)
+brew install act
+
+# Test the GitHub Actions workflow locally
+make ci-local-test
+```
+
+This command uses [act](https://github.com/nektos/act) to simulate the GitHub Actions environment locally, allowing you to test CI workflows before pushing changes.
+
 ## Usage
 
 Basic usage (analyze current directory):

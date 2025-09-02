@@ -1,4 +1,4 @@
-.PHONY: help build-binary build-deb clean test install deb-deps
+.PHONY: help build-binary build-deb clean test install deb-deps ci-local-test
 
 # Get version from version.py
 VERSION := $(shell python3 -c "exec(open('version.py').read()); print(VERSION)")
@@ -108,5 +108,24 @@ uninstall-deb: ## Uninstall the Debian package
 
 version: ## Show current version
 	@echo "Current version: $(VERSION)"
+
+ci-local-test: ## [macOS only] Test GitHub Actions locally using act
+	@echo "🧪 Testing GitHub Actions workflow locally using act..."
+	@echo "⚠️  WARNING: This command is designed for macOS development only"
+	@echo "📝 Logging: Running 'act' to simulate GitHub Actions locally"
+	@if ! command -v act >/dev/null 2>&1; then \
+		echo "❌ Error: 'act' is not installed."; \
+		echo ""; \
+		echo "To install act on macOS:"; \
+		echo "  brew install act"; \
+		echo ""; \
+		echo "For other platforms, see: https://github.com/nektos/act"; \
+		exit 1; \
+	fi
+	@if [ "$$(uname)" != "Darwin" ]; then \
+		echo "⚠️  WARNING: This command is intended for macOS only, but continuing anyway..."; \
+	fi
+	@echo "🏃 Running GitHub Actions test workflow locally..."
+	act pull_request --workflows .github/workflows/test.yml
 
 .DEFAULT_GOAL := help
