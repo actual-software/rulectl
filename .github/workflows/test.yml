@@ -58,6 +58,11 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-asyncio
 
+      - name: Initialize BAML
+        run: |
+          # Initialize BAML client generation (required for tests)
+          RULECTL_BUILD=1 python baml_init.py
+
       - name: Run Python tests
         run: |
           # Check if tests directory exists and has test files
