@@ -60,7 +60,14 @@ jobs:
 
       - name: Run Python tests
         run: |
-          python -m pytest tests/ -v --tb=short
+          # Check if tests directory exists and has test files
+          if [ -d "tests" ] && find tests -name "test_*.py" -type f | grep -q .; then
+            echo "Found Python test files, running pytest..."
+            python -m pytest tests/ -v --tb=short
+          else
+            echo "No Python test files found, skipping pytest"
+            exit 0
+          fi
 
   # Add this job to act as a required check that depends on all test jobs
   all-tests:
