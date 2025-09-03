@@ -14,6 +14,23 @@ from enum import Enum
 
 logger = logging.getLogger(__name__)
 
+# Import structured logging
+try:
+    from .logging_config import get_api_logger
+except ImportError:
+    try:
+        from rulectl.logging_config import get_api_logger
+    except ImportError:
+        # Fallback if logging config not available
+        def get_api_logger():
+            class FallbackLogger:
+                def info(self, msg, **kwargs): logger.info(msg)
+                def warning(self, msg, **kwargs): logger.warning(msg)
+                def error(self, msg, **kwargs): logger.error(msg)
+                def debug(self, msg, **kwargs): logger.debug(msg)
+                def verbose(self, msg, **kwargs): logger.info(msg)  # Fallback to info for verbose
+            return FallbackLogger()
+
 class RateLimitStrategy(Enum):
     """Rate limiting strategies."""
     CONSTANT = "constant"
@@ -64,6 +81,15 @@ class RateLimiter:
         self.window_start = time.time()
         self.consecutive_failures = 0
         self.current_delay = self.config.base_delay_ms
+        self.api_logger = get_api_logger()
+        
+        # Log initialization
+        self.api_logger.info("Rate limiter initialized",
+                           requests_per_minute=self.config.requests_per_minute,
+                           base_delay_ms=self.config.base_delay_ms,
+                           strategy=self.config.strategy.value,
+                           enable_batching=self.config.enable_batching,
+                           max_batch_size=self.config.max_batch_size)
         
     def _reset_window(self):
         """Reset the rate limiting window."""
@@ -112,6 +138,12 @@ class RateLimiter:
         """Wait if rate limiting is needed."""
         if self._should_rate_limit():
             delay = self._calculate_delay()
+            self.api_logger.warning("Rate limit reached - applying delay",
+                                  delay_seconds=delay,
+                                  current_requests=self.request_count,
+                                  max_requests=self.config.requests_per_minute,
+                                  consecutive_failures=self.consecutive_failures,
+                                  strategy=self.config.strategy.value)
             logger.info(f"Rate limit reached. Waiting {delay:.2f} seconds...")
             await asyncio.sleep(delay)
             self._reset_window()
@@ -127,10 +159,22 @@ class RateLimiter:
         self.request_count += 1
         self.last_request_time = current_time
         
+        # Log API call (VERBOSE level for detailed request tracking)
+        self.api_logger.verbose("API request recorded",
+                              request_count=self.request_count,
+                              max_requests=self.config.requests_per_minute,
+                              window_elapsed=current_time - self.window_start,
+                              time_since_last=current_time - self.last_request_time if self.last_request_time else 0)
+        
     def record_success(self) -> None:
         """Record a successful request."""
         self.consecutive_failures = 0
         self.current_delay = self.config.base_delay_ms
+        
+        # Log successful API call
+        self.api_logger.debug("API request succeeded",
+                            consecutive_failures_reset=True,
+                            current_delay_ms=self.current_delay)
         
     def record_failure(self, error: Exception) -> None:
         """Record a failed request and adjust strategy."""
@@ -138,16 +182,36 @@ class RateLimiter:
         
         # Check if it's a rate limit error
         error_str = str(error).lower()
-        if "rate_limit" in error_str or "429" in error_str or "too many requests" in error_str:
+        is_rate_limit_error = "rate_limit" in error_str or "429" in error_str or "too many requests" in error_str
+        
+        if is_rate_limit_error:
             logger.warning(f"Rate limit error detected: {error}")
             # Increase delay more aggressively for rate limit errors
+            old_delay = self.current_delay
             self.current_delay = min(
                 self.current_delay * 2,
                 self.config.max_delay_ms
             )
+            
+            # Log rate limit error with details
+            self.api_logger.error("Rate limit error detected",
+                                error_type="rate_limit",
+                                error_message=str(error),
+                                consecutive_failures=self.consecutive_failures,
+                                old_delay_ms=old_delay,
+                                new_delay_ms=self.current_delay)
         else:
             # Regular error, use normal backoff
+            old_delay = self.current_delay
             self.current_delay = self._calculate_delay() * 1000  # Convert back to ms
+            
+            # Log general API error
+            self.api_logger.error("API request failed",
+                                error_type="general",
+                                error_message=str(error),
+                                consecutive_failures=self.consecutive_failures,
+                                old_delay_ms=old_delay,
+                                new_delay_ms=self.current_delay)
             
     async def execute_with_rate_limiting(
         self, 
@@ -169,14 +233,44 @@ class RateLimiter:
         Raises:
             Exception: Any exception from the function execution
         """
+        function_name = getattr(func, '__name__', 'unknown_function')
+        start_time = time.time()
+        
+        # Log API call start (VERBOSE level for detailed tracking)
+        self.api_logger.verbose("API call starting",
+                               function=function_name,
+                               current_request_count=self.request_count,
+                               consecutive_failures=self.consecutive_failures)
+        
         try:
             await self.wait_if_needed()
             result = await func(*args, **kwargs)
+            
+            # Calculate execution time
+            execution_time = time.time() - start_time
+            
             self.record_request()
             self.record_success()
+            
+            # Log successful API call (VERBOSE level for detailed tracking)
+            self.api_logger.verbose("API call completed successfully",
+                                   function=function_name,
+                                   execution_time_seconds=execution_time,
+                                   result_type=type(result).__name__)
+            
             return result
         except Exception as e:
+            # Calculate execution time for failed calls
+            execution_time = time.time() - start_time
+            
             self.record_failure(e)
+            
+            # Log failed API call
+            self.api_logger.error("API call failed",
+                                function=function_name,
+                                execution_time_seconds=execution_time,
+                                error_type=type(e).__name__,
+                                error_message=str(e))
             raise
             
     async def execute_batch_with_rate_limiting(

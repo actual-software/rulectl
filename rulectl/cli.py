@@ -13,6 +13,7 @@ import json
 import os
 import subprocess
 import yaml
+from datetime import datetime
 
 def get_openai_api_key() -> Optional[str]:
     """Get OpenAI API key from environment or fallback file."""
@@ -272,6 +273,62 @@ def configure_rate_limiting(requests: Optional[int], delay: Optional[int], strat
         click.echo("\n💡 These settings will apply to the next rulectl start command")
         click.echo("💡 To make them permanent, add them to your shell profile")
 
+
+@cli.command()
+@click.option("--follow", "-f", is_flag=True, help="Follow log output (like tail -f)")
+@click.option("--lines", "-n", type=int, default=50, help="Number of recent lines to show")
+@click.option("--type", "log_type", type=click.Choice(["main", "api", "analysis", "debug"], case_sensitive=False), default="main", help="Type of log to show")
+def logs(follow: bool, lines: int, log_type: str):
+    """Show recent log entries."""
+    from rulectl.logging_config import get_log_directory
+    
+    try:
+        log_dir = get_log_directory()
+    except:
+        log_dir = Path.home() / ".rulectl" / "logs"
+    
+    # Map log types to files
+    log_files = {
+        "main": "rulectl.log",
+        "api": f"api-calls-{datetime.now().strftime('%Y-%m')}.log",
+        "analysis": f"analysis-{datetime.now().strftime('%Y-%m-%d')}.log",
+        "debug": "debug.log"
+    }
+    
+    log_file = log_dir / log_files[log_type]
+    
+    if not log_file.exists():
+        click.echo(f"❌ Log file not found: {log_file}")
+        click.echo(f"💡 Available log files in {log_dir}:")
+        if log_dir.exists():
+            for file in log_dir.glob("*.log*"):
+                click.echo(f"  • {file.name}")
+        return
+    
+    click.echo(f"📝 Showing {log_type} logs from: {log_file}")
+    click.echo(f"{'='*60}")
+    
+    if follow:
+        # Follow mode using subprocess
+        import subprocess
+        try:
+            subprocess.run(["tail", "-f", str(log_file)])
+        except KeyboardInterrupt:
+            click.echo("\n👋 Stopped following logs")
+        except FileNotFoundError:
+            click.echo("❌ 'tail' command not found. Follow mode not available.")
+    else:
+        # Show recent lines
+        try:
+            with open(log_file, 'r') as f:
+                log_lines = f.readlines()
+                recent_lines = log_lines[-lines:] if len(log_lines) > lines else log_lines
+                for line in recent_lines:
+                    click.echo(line.rstrip())
+        except Exception as e:
+            click.echo(f"❌ Error reading log file: {e}")
+
+
 @config.command("clear")
 @click.argument("provider", type=click.Choice(["anthropic", "openai", "all"], case_sensitive=False))
 @click.option("--force", is_flag=True, help="Skip confirmation")
@@ -323,9 +380,12 @@ def clear_key(provider: str, force: bool):
 @click.option("--delay-ms", type=int, help="Override base delay between requests (milliseconds)")
 @click.option("--no-batching", is_flag=True, help="Disable batch processing")
 @click.option("--strategy", type=click.Choice(["constant", "exponential", "adaptive"]), help="Rate limiting strategy")
+@click.option("--log-level", type=click.Choice(["DEBUG", "VERBOSE", "INFO", "WARNING", "ERROR"], case_sensitive=False), default="INFO", help="Set logging level (VERBOSE enables detailed API logging)")
+@click.option("--log-dir", type=click.Path(file_okay=False, dir_okay=True), help="Custom log directory (default: ~/.rulectl/logs)")
 @click.argument("directory", type=click.Path(exists=True, file_okay=False, dir_okay=True), default=".")
 def start(verbose: bool, force: bool, rate_limit: Optional[int], batch_size: Optional[int], 
-          delay_ms: Optional[int], no_batching: bool, strategy: Optional[str], directory: str):
+          delay_ms: Optional[int], no_batching: bool, strategy: Optional[str], 
+          log_level: str, log_dir: Optional[str], directory: str):
     """Start the Rulectl service.
     
     DIRECTORY: Path to the repository to analyze (default: current directory)
@@ -336,19 +396,65 @@ def start(verbose: bool, force: bool, rate_limit: Optional[int], batch_size: Opt
     --delay-ms: Override base delay between requests
     --no-batching: Disable batch processing (process files one by one)
     --strategy: Rate limiting strategy (constant, exponential, adaptive)
+    
+    Logging options:
+    --log-level: Set logging level (DEBUG, VERBOSE, INFO, WARNING, ERROR)
+                 VERBOSE enables detailed API call logging
+    --log-dir: Custom log directory (default: ~/.rulectl/logs)
     """
     try:
         # Run the async main function
-        asyncio.run(async_start(verbose, force, rate_limit, batch_size, delay_ms, no_batching, strategy, directory))
+        asyncio.run(async_start(verbose, force, rate_limit, batch_size, delay_ms, no_batching, strategy, log_level, log_dir, directory))
     except Exception as e:
+        # Initialize logging for error handling if not already done
+        try:
+            from rulectl.logging_config import get_logger
+            logger = get_logger("cli")
+            logger.error("Critical error in rulectl execution",
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        directory=directory,
+                        verbose=verbose,
+                        log_level=log_level)
+        except:
+            # Fallback if logging not available
+            pass
+            
         click.echo(f"\n❌ Error: {str(e)}")
+        click.echo(f"📝 Check logs for details: ~/.rulectl/logs/")
         sys.exit(1)
 
 async def async_start(verbose: bool, force: bool, rate_limit: Optional[int], batch_size: Optional[int],
-                     delay_ms: Optional[int], no_batching: bool, strategy: Optional[str], directory: str):
+                     delay_ms: Optional[int], no_batching: bool, strategy: Optional[str], 
+                     log_level: str, log_dir: Optional[str], directory: str):
     """Async implementation of the start command."""
+    # Initialize logging first
+    from rulectl.logging_config import setup_logging, get_logger, get_analysis_logger
+    
+    log_dir_path = Path(log_dir) if log_dir else None
+    logging_config = setup_logging(log_dir_path, log_level, verbose_console=verbose)
+    
+    logger = get_logger("cli")
+    analysis_logger = get_analysis_logger()
+    
+    # Log the start of analysis
+    analysis_logger.info("Starting rulectl analysis", 
+                        directory=directory, 
+                        log_level=log_level,
+                        verbose=verbose)
+    
+    logger.info("Rulectl analysis started", 
+                directory=directory,
+                rate_limit=rate_limit,
+                batch_size=batch_size,
+                delay_ms=delay_ms,
+                no_batching=no_batching,
+                strategy=strategy)
+    
     # Convert directory to absolute path
     directory = str(Path(directory).resolve())
+    
+    click.echo(f"📝 Logs are being written to: {logging_config.get_log_directory()}")
     
     # Set rate limiting environment variables if provided
     if rate_limit:
@@ -1301,6 +1407,16 @@ async def async_start(verbose: bool, force: bool, rate_limit: Optional[int], bat
         analysis_file.unlink()
     if analysis_dir.exists() and not any(analysis_dir.iterdir()):
         analysis_dir.rmdir()
+    
+    # Log analysis completion
+    analysis_logger.info("Rulectl analysis completed successfully",
+                        directory=directory,
+                        total_files_analyzed=len(all_files) if 'all_files' in locals() else 0,
+                        rules_generated=len(mdc_files) if 'mdc_files' in locals() else 0,
+                        rules_accepted=len(accepted_rules) if 'accepted_rules' in locals() else 0)
+    
+    logger.info("Analysis session complete",
+               log_directory=str(logging_config.get_log_directory()))
 
 def main():
     """Entry point for the CLI application."""
