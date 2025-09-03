@@ -239,6 +239,12 @@ With verbose output:
 rulectl start --verbose ~/path/to/repository
 ```
 
+Continue a previous incomplete analysis:
+
+```bash
+rulectl start --continue
+```
+
 The tool will:
 
 1. Check if the specified directory is a Git repository

@@ -318,17 +318,21 @@ def clear_key(provider: str, force: bool):
 @cli.command()
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--force", "-f", is_flag=True, help="Skip confirmation prompts")
+@click.option("--continue", "continue_analysis", is_flag=True, help="Automatically continue from previous incomplete analysis")
 @click.option("--rate-limit", type=int, help="Override rate limit (requests per minute)")
 @click.option("--batch-size", type=int, help="Override batch size for processing")
 @click.option("--delay-ms", type=int, help="Override base delay between requests (milliseconds)")
 @click.option("--no-batching", is_flag=True, help="Disable batch processing")
 @click.option("--strategy", type=click.Choice(["constant", "exponential", "adaptive"]), help="Rate limiting strategy")
 @click.argument("directory", type=click.Path(exists=True, file_okay=False, dir_okay=True), default=".")
-def start(verbose: bool, force: bool, rate_limit: Optional[int], batch_size: Optional[int], 
+def start(verbose: bool, force: bool, continue_analysis: bool, rate_limit: Optional[int], batch_size: Optional[int], 
           delay_ms: Optional[int], no_batching: bool, strategy: Optional[str], directory: str):
     """Start the Rulectl service.
     
     DIRECTORY: Path to the repository to analyze (default: current directory)
+    
+    Resume options:
+    --continue: Automatically continue from previous incomplete analysis without prompting
     
     Rate limiting options help prevent hitting API rate limits:
     --rate-limit: Override requests per minute limit
@@ -339,16 +343,87 @@ def start(verbose: bool, force: bool, rate_limit: Optional[int], batch_size: Opt
     """
     try:
         # Run the async main function
-        asyncio.run(async_start(verbose, force, rate_limit, batch_size, delay_ms, no_batching, strategy, directory))
+        asyncio.run(async_start(verbose, force, continue_analysis, rate_limit, batch_size, delay_ms, no_batching, strategy, directory))
     except Exception as e:
         click.echo(f"\n❌ Error: {str(e)}")
         sys.exit(1)
 
-async def async_start(verbose: bool, force: bool, rate_limit: Optional[int], batch_size: Optional[int],
+async def async_start(verbose: bool, force: bool, continue_analysis: bool, rate_limit: Optional[int], batch_size: Optional[int],
                      delay_ms: Optional[int], no_batching: bool, strategy: Optional[str], directory: str):
     """Async implementation of the start command."""
     # Convert directory to absolute path
     directory = str(Path(directory).resolve())
+    
+    # Import state management modules
+    try:
+        from rulectl.state_manager import AnalysisStateManager
+        from rulectl.analysis_phases import AnalysisPhase
+    except ImportError:
+        AnalysisStateManager = None
+        AnalysisPhase = None
+    
+    # Initialize state manager
+    state_manager = None
+    resume_info = None
+    if AnalysisStateManager:
+        state_manager = AnalysisStateManager(directory)
+        
+        # Check for incomplete analysis
+        resume_info = await state_manager.detect_incomplete_analysis()
+        
+        if resume_info and resume_info['can_resume']:
+            if continue_analysis:
+                # Auto-continue without prompting
+                click.echo(f"🔄 Continuing from previous incomplete analysis...")
+                click.echo(f"📊 Session: {resume_info['session_id'][:8]}...")
+                click.echo(f"📋 Phase: {resume_info['phase_description']}")
+                if 'progress' in resume_info:
+                    prog = resume_info['progress']
+                    click.echo(f"📈 Progress: {prog['completed']}/{prog['total']} files completed, {prog['failed']} failed")
+                
+                # Resume from existing state
+                await state_manager.resume_from_existing_state()
+            else:
+                # Show warning and prompt user
+                click.echo("\n" + "="*60)
+                click.echo("⚠️  WARNING ⚠️")
+                click.echo("="*60)
+                click.echo("We notice that the last time rulectl was run, analysis didn't complete.")
+                click.echo(f"\n📊 Previous session: {resume_info['session_id'][:8]}...")
+                click.echo(f"📅 Started: {resume_info['started_at']}")
+                click.echo(f"📋 Was working on: {resume_info['phase_description']}")
+                
+                if 'progress' in resume_info:
+                    prog = resume_info['progress']
+                    click.echo(f"📈 Progress: {prog['completed']}/{prog['total']} files completed")
+                    if prog['failed'] > 0:
+                        click.echo(f"⚠️  {prog['failed']} files failed during analysis")
+                    if prog['current_item']:
+                        click.echo(f"🔄 Was processing: {prog['current_item']}")
+                
+                click.echo(f"\n💾 Found {len(resume_info['completed_phases'])} completed phases")
+                if resume_info['completed_phases']:
+                    click.echo(f"✅ Completed: {', '.join(resume_info['completed_phases'])}")
+                
+                click.echo("\n" + "="*60)
+                
+                if click.confirm("\nWould you like to continue where you left off?", default=True):
+                    click.echo("🔄 Resuming analysis from previous state...")
+                    await state_manager.resume_from_existing_state()
+                else:
+                    click.echo("🗑️  Cleaning up previous session and starting fresh...")
+                    await state_manager.cleanup_failed_session()
+                    state_manager = AnalysisStateManager(directory)  # Create fresh state manager
+                    resume_info = None
+        elif resume_info and not resume_info['can_resume']:
+            # Incomplete analysis but can't resume (missing cache files)
+            click.echo(f"\n⚠️  Found incomplete analysis but some cache files are missing:")
+            for missing_file in resume_info['missing_cache_files']:
+                click.echo(f"   ❌ {missing_file}")
+            click.echo("🔄 Starting fresh analysis...")
+            await state_manager.cleanup_failed_session()
+            state_manager = AnalysisStateManager(directory)
+            resume_info = None
     
     # Set rate limiting environment variables if provided
     if rate_limit:
@@ -457,8 +532,21 @@ async def async_start(verbose: bool, force: bool, rate_limit: Optional[int], bat
                 sys.path.insert(0, parent_dir)
             from rulectl.analyzer import RepoAnalyzer, MAX_ANALYZABLE_LINES
 
-    # Initialize analyzer with the specified directory
-    analyzer = RepoAnalyzer(directory)
+    # Initialize analyzer with the specified directory and state manager
+    analyzer = RepoAnalyzer(directory, state_manager=state_manager)
+    
+    # Initialize new session if not resuming
+    if not resume_info and state_manager:
+        analysis_options = {
+            'verbose': verbose,
+            'force': force,
+            'rate_limit': rate_limit,
+            'batch_size': batch_size,
+            'delay_ms': delay_ms,
+            'no_batching': no_batching,
+            'strategy': strategy
+        }
+        await state_manager.initialize_new_session(analysis_options)
     
     # Check for .gitignore
     if not analyzer.has_gitignore():
@@ -565,7 +653,10 @@ async def async_start(verbose: bool, force: bool, rate_limit: Optional[int], bat
     click.echo("\n🔍 Starting repository analysis...")
     
     # Step 1: Analyze structure
-    analyzer.analyze_structure()
+    if state_manager and AnalysisPhase:
+        await state_manager.start_phase(AnalysisPhase.STRUCTURE_ANALYSIS)
+    
+    await analyzer.analyze_structure()
     if verbose:
         click.echo("\n📁 Repository structure analyzed")
     
@@ -582,54 +673,8 @@ async def async_start(verbose: bool, force: bool, rate_limit: Optional[int], bat
     # Step 3: Analyze files with rate limiting and progress tracking
     click.echo("\n🔎 Analyzing files...")
     
-    # Progress bar with rate limiting and token tracking
-    all_static_analyses = []
-    
-    def get_progress_info(file_path):
-        if not file_path:
-            return ""
-        
-        # Always show token info, even if 0
-        token_info = " | 📊 0 tokens ($0.00)"  # Default
-        
-        if analyzer.token_tracker:
-            current_tokens = analyzer.token_tracker.get_total_tokens()
-            current_cost = analyzer.token_tracker.total_cost
-            token_info = f" | 📊 {current_tokens:,} tokens (${current_cost:.2f})"
-        
-        # Add rate limiting info
-        rate_info = ""
-        if analyzer.rate_limiter:
-            status = analyzer.rate_limiter.get_status()
-            rate_info = f" | 🚦 {status['requests_this_window']}/{status['max_requests_per_window']} req/min"
-        
-        return f"Current: {file_path}{token_info}{rate_info}"
-    
-    with click.progressbar(
-        all_files,
-        label="Analyzing files",
-        item_show_func=get_progress_info,
-        show_eta=True,
-        show_percent=True,
-        show_pos=True,
-        length=len(all_files),
-        bar_template='%(label)s  [%(bar)s]  %(info)s'
-    ) as bar:
-        for file_path in bar:
-            # Analyze individual file with rate limiting
-            result = await analyzer.analyze_file(file_path)
-            if result:  # Only add successful analyses
-                all_static_analyses.append(result)
-            
-            if verbose:
-                status = "✓" if result else "⚠"
-                
-                # Always show token info in verbose mode
-                token_info = " | 📊 0 tokens ($0.00)"  # Default
-                if analyzer.token_tracker:
-                    current_tokens = analyzer.token_tracker.get_total_tokens()
-                    current_cost = analyzer.token_tracker.total_cost
-                    token_info = f" | 📊 {current_tokens:,} tokens (${current_cost:.2f})"
+    # Use resumable file analysis
+    all_static_analyses = await analyzer.analyze_files_resumable(all_files)
     
     # Display file analysis results with token tracking
     if analyzer.token_tracker:
@@ -639,6 +684,9 @@ async def async_start(verbose: bool, force: bool, rate_limit: Optional[int], bat
         click.echo(f"\n✅ Successfully analyzed {len(all_static_analyses)} files")
     
     # Step 4: Analyze git history for file importance
+    if state_manager and AnalysisPhase:
+        await state_manager.start_phase(AnalysisPhase.GIT_ANALYSIS)
+    
     click.echo("\n📊 Analyzing git history for file importance...")
     try:
         # Get detailed git statistics first
@@ -689,7 +737,18 @@ async def async_start(verbose: bool, force: bool, rate_limit: Optional[int], bat
         click.echo("📝 Continuing with equal file importance...")
         importance_weights = {}
     
+    # Complete git analysis phase
+    if state_manager and AnalysisPhase:
+        git_cache_data = {
+            'importance_weights': importance_weights,
+            'git_details': git_details if 'git_details' in locals() else None
+        }
+        await state_manager.complete_phase(AnalysisPhase.GIT_ANALYSIS, git_cache_data)
+    
     # Step 5: Synthesize rules with advanced clustering
+    if state_manager and AnalysisPhase:
+        await state_manager.start_phase(AnalysisPhase.RULE_SYNTHESIS)
+    
     click.echo("\n🧮 Synthesizing and clustering rules...")
     try:
         mdc_files, synthesis_stats = await analyzer.synthesize_rules_advanced(all_static_analyses, importance_weights)
@@ -782,7 +841,18 @@ async def async_start(verbose: bool, force: bool, rate_limit: Optional[int], bat
         mdc_files = []
         synthesis_stats = {}
     
+    # Complete rule synthesis phase
+    if state_manager and AnalysisPhase:
+        synthesis_cache_data = {
+            'mdc_files': mdc_files,
+            'synthesis_stats': synthesis_stats
+        }
+        await state_manager.complete_phase(AnalysisPhase.RULE_SYNTHESIS, synthesis_cache_data)
+    
     # Step 6: Save findings
+    if state_manager and AnalysisPhase:
+        await state_manager.start_phase(AnalysisPhase.SAVE_COMPLETE)
+    
     click.echo("\n💾 Saving analysis...")
     analyzer.save_findings(str(analysis_file))
     
@@ -1295,6 +1365,12 @@ async def async_start(verbose: bool, force: bool, rate_limit: Optional[int], bat
     if old_rules.exists():
         old_rules.unlink()
         click.echo("\n🗑️  Removed old rules.mdc file")
+    
+    # Complete the save phase and clean up state
+    if state_manager and AnalysisPhase:
+        await state_manager.complete_phase(AnalysisPhase.SAVE_COMPLETE)
+        # Clean up completed session
+        await state_manager.cleanup_completed_session()
     
     # Clean up analysis files
     if analysis_file.exists():
