@@ -1,0 +1,10 @@
+---
+globs: ["**"]
+alwaysApply: false
+---
+
+# Use Python For All Development Purposes
+
+## Policies
+
+1. use python for everything, and use python 3+
