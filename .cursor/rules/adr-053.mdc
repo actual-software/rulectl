@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Standardize External API Client Integration Patterns
+
+## Policies
+
+1. API credentials and tokens MUST be stored in environment variables or secure credential stores, never hardcoded in source files

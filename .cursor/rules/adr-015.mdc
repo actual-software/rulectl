@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Standardize Python Build and CLI Tooling Configuration Patterns
+
+## Policies
+
+1. All Python build scripts and CLI tools MUST follow the established configuration pattern detected in analyzer.py, baml_init.py, build.py, fix_dependencies.py, and cli.py

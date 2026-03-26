@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Standardize External API Client Integration Patterns
+
+## Policies
+
+1. External API clients MAY implement caching strategies to reduce API calls and improve performance where appropriate

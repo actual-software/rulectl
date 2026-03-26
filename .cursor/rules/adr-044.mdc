@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Implement Rate Limiting and Token Tracking for External API Interactions
+
+## Policies
+
+1. Utility functions interacting with external APIs SHOULD encapsulate rate limiting and token tracking logic to ensure consistent application

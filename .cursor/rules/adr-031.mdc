@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Establish Core Library Module Structure with Standard Entry Points
+
+## Policies
+
+1. Library __init__.py files SHOULD NOT contain complex business logic or perform expensive operations at import time

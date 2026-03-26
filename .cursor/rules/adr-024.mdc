@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Centralize Runtime Configuration Sources for Design System Theming
+
+## Policies
+
+1. Configuration sources MAY include remote configuration services for enterprise deployments requiring centralized theme management

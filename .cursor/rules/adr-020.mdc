@@ -1,0 +1,28 @@
+---
+globs: ["**/*.py"]
+alwaysApply: false
+---
+
+# Standardize Python Script Structure with Argparse CLI and Modular Architecture
+
+## Policies
+
+1. Scripts MUST implement a main() function that serves as the primary entry point
+
+2. Scripts MUST use argparse module for command-line argument parsing
+
+3. Scripts MUST use if __name__ == "__main__": guard when executing main()
+
+4. Scripts SHOULD separate business logic into discrete, reusable functions
+
+5. Scripts SHOULD organize related functionality into separate modules
+
+6. Scripts MUST handle exceptions at appropriate levels with informative error messages
+
+7. Scripts SHOULD include docstrings for public functions and modules
+
+8. Scripts SHOULD use sys.exit() with appropriate exit codes for error conditions
+
+9. Parser definitions SHOULD be extracted into a separate function (e.g., create_parser())
+
+10. Configuration and constants SHOULD be defined at module level or in separate config modules

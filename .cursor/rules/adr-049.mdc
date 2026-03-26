@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Implement Rate Limiting and Token Tracking for External API Interactions
+
+## Policies
+
+1. Token consumption MUST be tracked and monitored using a dedicated token tracker for APIs with token-based billing or quota systems

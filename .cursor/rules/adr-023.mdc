@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Centralize Runtime Configuration Sources for Design System Theming
+
+## Policies
+
+1. Components MUST NOT directly access environment variables or configuration files; they MUST use the centralized configuration API

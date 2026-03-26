@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Establish Public API Contracts for Design System Components
+
+## Policies
+
+1. Components MAY expose experimental APIs with explicit unstable markers that are exempt from semantic versioning guarantees

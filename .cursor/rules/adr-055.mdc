@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Standardize External API Client Integration Patterns
+
+## Policies
+
+1. External API clients SHOULD implement usage tracking and logging to monitor API consumption, costs, and performance metrics

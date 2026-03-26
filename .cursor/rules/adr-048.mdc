@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Implement Rate Limiting and Token Tracking for External API Interactions
+
+## Policies
+
+1. Rate limiters MUST implement exponential backoff with jitter when rate limits are exceeded to prevent thundering herd problems

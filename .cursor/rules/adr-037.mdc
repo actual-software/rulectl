@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Implement Rate Limiting and Token Tracking for Public API Endpoints
+
+## Policies
+
+1. API responses SHOULD include rate limit status headers (e.g., X-RateLimit-Remaining, X-RateLimit-Reset) to inform clients

@@ -1,0 +1,66 @@
+---
+globs: ["**/*.py"]
+alwaysApply: false
+---
+
+# ADR 017: Standardize Python Script Structure with Argparse CLI and Modular Architecture
+
+## Context
+
+Python scripts require consistent structure for maintainability, testability, and CLI usability.
+
+## Decision
+
+Standardize Python scripts with argparse for CLI argument parsing and modular function-based architecture.
+
+## Policies
+
+1. Scripts SHALL use argparse for command-line argument parsing
+2. Main logic SHALL be encapsulated in functions, not at module level
+3. Scripts SHALL include a `if __name__ == "__main__":` guard
+4. Error handling SHOULD be implemented with clear error messages and appropriate exit codes
+5. Functions SHALL be single-purpose and independently testable
+6. Import statements SHALL follow PEP 8 ordering: standard library, third-party, local
+7. Scripts SHALL include docstrings for the module and all public functions
+8. Configuration values SHOULD be parameterized through CLI arguments or constants
+9. Script entry point SHALL call a main() function that orchestrates execution
+10. Return codes SHALL follow Unix conventions: 0 for success, non-zero for errors
+
+## Example Structure
+
+```python
+#!/usr/bin/env python3
+"""Module docstring describing script purpose."""
+
+import argparse
+import sys
+from typing import Optional
+
+
+def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(description="Script description")
+    parser.add_argument("--input", required=True, help="Input file path")
+    return parser.parse_args()
+
+
+def process_data(input_path: str) -> bool:
+    """Process data from input file."""
+    # Implementation
+    return True
+
+
+def main() -> int:
+    """Main entry point."""
+    args = parse_args()
+    try:
+        success = process_data(args.input)
+        return 0 if success else 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```

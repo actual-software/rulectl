@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Centralize Runtime Configuration Sources for Design System Theming
+
+## Policies
+
+1. All design system theme configuration MUST be sourced from centralized runtime configuration sources rather than hardcoded values

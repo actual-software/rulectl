@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Implement Rate Limiting and Token Tracking for External API Interactions
+
+## Policies
+
+1. API clients SHOULD pre-emptively throttle requests when approaching known rate limits rather than waiting for 429 responses

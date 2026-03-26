@@ -1,0 +1,14 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Standardize Python Script Structure with Argparse CLI and Modular Architecture
+
+## Policies
+
+1. All Python CLI scripts MUST use argparse for command-line argument parsing
+2. Scripts MUST separate business logic into reusable functions distinct from CLI interface code
+3. Main execution logic MUST be wrapped in `if __name__ == "__main__":` block
+4. CLI scripts MUST include `--help` documentation via argparse help text
+5. Argument parsers MUST define clear descriptions for all arguments and subcommands

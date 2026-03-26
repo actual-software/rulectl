@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Standardize External API Client Integration Patterns
+
+## Policies
+
+1. External API client modules SHOULD expose consistent interfaces (e.g., common base classes or protocols) to enable polymorphic usage and dependency injection

@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Establish Core Library Module Structure with Standard Entry Points
+
+## Policies
+
+1. Library initialization code SHOULD handle runtime warnings and error conditions gracefully through dedicated utility modules

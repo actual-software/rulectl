@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Establish Core Library Module Structure with Standard Entry Points
+
+## Policies
+
+1. Package structure MUST follow Python namespace conventions with clear separation between public API and internal implementation

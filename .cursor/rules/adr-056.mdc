@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Standardize External API Client Integration Patterns
+
+## Policies
+
+1. All external API calls MUST be wrapped in try-except blocks with specific exception handling for network, authentication, and API-specific errors
