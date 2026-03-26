@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Implement Rate Limiting and Token Tracking for Public API Endpoints
+
+## Policies
+
+1. Rate limiting logic SHOULD be centralized in dedicated utility modules (e.g., rate_limiter.py, token_tracker.py) to ensure consistency

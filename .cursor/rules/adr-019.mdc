@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Standardize Python Script Structure with Argparse CLI and Modular Architecture
+
+## Policies
+
+1. CLI tools SHOULD provide help text and descriptions for all arguments using argparse help parameter

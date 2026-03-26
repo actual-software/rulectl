@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Centralize Runtime Configuration Sources for Design System Theming
+
+## Policies
+
+1. Runtime configuration sources MUST support hierarchical precedence (e.g., environment variables > user preferences > defaults)

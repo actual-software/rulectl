@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Standardize Python Build and CLI Tooling Configuration Patterns
+
+## Policies
+
+1. Dependency resolution and fixing utilities MUST NOT introduce alternative patterns that conflict with the established fix_dependencies.py approach

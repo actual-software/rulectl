@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Centralize Runtime Configuration Sources for Design System Theming
+
+## Policies
+
+1. Theme configuration SHOULD be validated at runtime to ensure type safety and prevent invalid values from propagating

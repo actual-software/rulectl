@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Standardize External API Client Integration Patterns
+
+## Policies
+
+1. External API client modules MUST handle rate limiting, timeouts, and transient failures with exponential backoff retry logic

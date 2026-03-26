@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Standardize Python Script Structure with Argparse CLI and Modular Architecture
+
+## Policies
+
+1. Scripts MAY use subparsers for complex multi-command CLI tools

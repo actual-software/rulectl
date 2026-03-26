@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Standardize Python Build and CLI Tooling Configuration Patterns
+
+## Policies
+
+1. New CLI commands SHOULD be structured using the same command registration and argument parsing patterns as existing tools in rulectl/cli.py

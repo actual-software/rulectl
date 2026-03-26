@@ -1,0 +1,24 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Standardize Python Script Structure with Argparse CLI and Modular Architecture
+
+## Policies
+
+1. Scripts SHOULD organize related functionality into separate functions that can be tested independently
+
+2. Scripts SHOULD use argparse for command-line argument parsing instead of sys.argv manipulation
+
+3. Scripts SHOULD define a main() function that serves as the primary entry point
+
+4. Scripts SHOULD use the if __name__ == "__main__" guard to enable both script execution and module import
+
+5. Scripts SHOULD separate business logic from argument parsing to improve testability
+
+6. Scripts SHOULD define argument parsers in a separate setup_parser() or create_parser() function
+
+7. Scripts SHOULD use meaningful function and variable names that clearly indicate their purpose
+
+8. Scripts SHOULD validate input arguments early and provide clear error messages for invalid inputs

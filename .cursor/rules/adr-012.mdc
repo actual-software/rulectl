@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Standardize Python Build and CLI Tooling Configuration Patterns
+
+## Policies
+
+1. Build automation scripts SHOULD separate configuration, execution, and error handling concerns following the pattern established in build.py

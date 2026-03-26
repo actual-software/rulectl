@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Standardize Python Script Structure with Argparse CLI and Modular Architecture
+
+## Policies
+
+1. CLI scripts MUST separate argument parsing logic from business logic through modular function design

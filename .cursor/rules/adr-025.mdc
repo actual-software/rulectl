@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Centralize Runtime Configuration Sources for Design System Theming
+
+## Policies
+
+1. Configuration changes SHOULD be reactive, allowing theme updates without full application reload where technically feasible

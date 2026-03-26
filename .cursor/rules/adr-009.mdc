@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Establish Public API Contracts for Design System Components
+
+## Policies
+
+1. All design system components MUST explicitly declare their public API surface through documented interfaces, type definitions, or API contracts

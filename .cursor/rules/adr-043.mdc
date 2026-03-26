@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Implement Rate Limiting and Token Tracking for External API Interactions
+
+## Policies
+
+1. Systems MAY implement circuit breakers in conjunction with rate limiters to fail fast when external APIs are consistently unavailable

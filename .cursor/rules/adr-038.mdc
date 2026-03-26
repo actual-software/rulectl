@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Implement Rate Limiting and Token Tracking for Public API Endpoints
+
+## Policies
+
+1. Rate limit violations SHOULD return HTTP 429 (Too Many Requests) with appropriate retry-after headers

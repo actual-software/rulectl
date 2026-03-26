@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Establish Core Library Module Structure with Standard Entry Points
+
+## Policies
+
+1. All Python library packages MUST include an __init__.py file to define the package namespace and public API surface

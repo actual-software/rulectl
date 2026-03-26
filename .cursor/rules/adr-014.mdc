@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Standardize Python Build and CLI Tooling Configuration Patterns
+
+## Policies
+
+1. Dependency management and initialization logic MUST be centralized and follow consistent import and setup patterns across all tooling modules

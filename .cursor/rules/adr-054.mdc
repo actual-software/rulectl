@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Standardize External API Client Integration Patterns
+
+## Policies
+
+1. External API integrations SHOULD provide mock implementations or test doubles to enable offline development and testing

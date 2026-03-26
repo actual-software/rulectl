@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Implement Rate Limiting and Token Tracking for Public API Endpoints
+
+## Policies
+
+1. All public-facing API endpoints MUST implement rate limiting to prevent resource exhaustion and abuse

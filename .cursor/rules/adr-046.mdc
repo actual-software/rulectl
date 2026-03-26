@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Implement Rate Limiting and Token Tracking for External API Interactions
+
+## Policies
+
+1. Token tracking SHOULD provide visibility into consumption patterns through logging and metrics for capacity planning

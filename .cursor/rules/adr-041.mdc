@@ -1,0 +1,10 @@
+---
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Implement Rate Limiting and Token Tracking for Public API Endpoints
+
+## Policies
+
+1. API rate limiters MUST track consumption on a per-client or per-token basis to enforce individual quotas
