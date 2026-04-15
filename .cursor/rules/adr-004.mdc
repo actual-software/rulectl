@@ -1,0 +1,16 @@
+---
+globs: ["**/*.py"]
+alwaysApply: false
+---
+
+# Token Usage Monitoring and Cost Tracking for AI Operations
+
+## Policies
+
+1. Implement TokenTracker class for monitoring AI API token usage and cost across all Python applications using LLMs
+2. Track both input and output tokens separately for accurate cost calculation and reporting
+3. Load model pricing configuration from YAML files with per-model input/output token costs
+4. Record token usage per analysis phase using track_call_from_collector() with phase identifiers
+5. Calculate cumulative costs in real-time based on current token counts and model pricing
+6. Set default model to 'claude-sonnet-4-20250514' from pricing configuration '_default' key
+7. Provide get_total_tokens() method returning cumulative input/output token counts for reporting

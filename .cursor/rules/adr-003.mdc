@@ -1,0 +1,16 @@
+---
+globs: ["**/*.py","**/*.yaml","**/*.yml"]
+alwaysApply: false
+---
+
+# YAML Configuration Management for Application Settings
+
+## Policies
+
+1. Use YAML format for all application configuration files in Python projects (rate limiting, pricing, settings)
+2. Include pyyaml>=6.0 dependency for YAML parsing and python-dotenv>=1.0.0 for environment variable loading
+3. Load YAML configuration using yaml.safe_load() for security (prevents arbitrary code execution)
+4. Store configuration files in dedicated 'config' directory at project root level
+5. Use Path(__file__).parent.parent / 'config' / 'filename.yaml' for cross-platform config file paths
+6. Load environment variables using python-dotenv's load_dotenv() at application startup
+7. Implement fallback values when configuration files or environment variables are missing
