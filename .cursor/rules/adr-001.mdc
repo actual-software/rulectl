@@ -1,0 +1,10 @@
+---
+globs: ["rulectl/**"]
+alwaysApply: false
+---
+
+# Adopt External API Integration Pattern with Rate Limiting and Token Tracking
+
+## Policies
+
+1. Implement a centralized external API integration pattern that includes: (1) dedicated rate limiting mechanisms to respect API quotas and prevent throttling, (2) token tracking to monitor and manage API usage across requests, (3) specialized utility modules for Git operations that abstract external service interactions, and (4) shared utility functions that provide consistent error handling and retry logic for external API calls. This pattern ensures all external API interactions follow a standardized approach with built-in safeguards.

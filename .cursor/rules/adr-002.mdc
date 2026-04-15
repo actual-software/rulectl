@@ -1,0 +1,10 @@
+---
+globs: ["rulectl/**"]
+alwaysApply: false
+---
+
+# Adopt External API Client Pattern for Third-Party Service Integration
+
+## Policies
+
+1. Implement dedicated external API client abstractions that encapsulate all interactions with third-party services. Each client provides a clean interface for external service operations, handles authentication and authorization, implements retry logic and rate limiting, and provides consistent error handling. The pattern separates external API concerns from business logic, making the codebase more modular and testable. Clients are designed with clear boundaries that isolate external dependencies and provide mock-friendly interfaces for testing.

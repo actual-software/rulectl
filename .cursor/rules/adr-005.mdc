@@ -1,0 +1,16 @@
+---
+globs: ["**/*.py"]
+alwaysApply: false
+---
+
+# Token Bucket Rate Limiting for API Call Management
+
+## Policies
+
+1. Implement token bucket algorithm for all API rate limiting in Python applications
+2. Use RateLimiter class with configurable per-minute and per-day request limits for external API clients
+3. Load rate limit configuration from YAML files (rate_limiting.yaml) in config directory
+4. Implement async wait_if_needed() method that delays execution using asyncio.sleep() when limits are exceeded
+5. Track request timestamps using time.time() and maintain sliding window of recent requests
+6. Define RateLimitStrategy enum with ROLLING_WINDOW strategy for time-based rate limiting
+7. Provide get_status() method returning current usage statistics (requests made, remaining, reset time)
